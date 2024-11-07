@@ -1,0 +1,27 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Banca.Sesion.Asp.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="CadenaConexion" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">127.0.0.1:30000,password=Canella123</Value>
+    </Setting>
+    <Setting Name="NombreCookieSesionNet" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">PruebaNetCore</Value>
+    </Setting>
+    <Setting Name="TiempoEsperaReintentos" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:00:05</Value>
+    </Setting>
+    <Setting Name="TiempoEsperaSesion" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:20:00</Value>
+    </Setting>
+    <Setting Name="TiempoEsperaPeticion" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:01:00</Value>
+    </Setting>
+    <Setting Name="CookieEnlaceSegura" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="CookieEnlaceMismoSitio" Type="System.Web.SameSiteMode" Scope="User">
+      <Value Profile="(Default)">Strict</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
