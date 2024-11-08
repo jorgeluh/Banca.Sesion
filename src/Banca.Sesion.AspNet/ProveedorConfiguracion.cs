@@ -42,7 +42,9 @@ namespace Banca.Sesion.AspNet
             SessionStateSection seccionEstadoSesion = (SessionStateSection)WebConfigurationManager.GetSection("system.web/sessionState");
             this.TiempoEsperaSesion = seccionEstadoSesion.Timeout;
             this.CookieEnlaceSegura = ObtenerConfiguracionBool(configuraciones, "cookieEnlaceSegura", true);
+#if !NET461
             this.CookieEnlaceMismoSitio = seccionEstadoSesion.CookieSameSite;
+#endif
         }
 
         /// <summary>
@@ -132,10 +134,12 @@ namespace Banca.Sesion.AspNet
         /// </summary>
         public bool CookieEnlaceSegura { get; }
 
+#if !NET461
         /// <summary>
         /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
         /// </summary>
         public SameSiteMode CookieEnlaceMismoSitio { get; }
+#endif
 
         /// <summary>
         /// Crea una nueva instancia de la clase <see cref="ProveedorConfiguracion"/>.

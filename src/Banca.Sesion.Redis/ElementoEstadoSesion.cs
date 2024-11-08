@@ -22,7 +22,11 @@ namespace Banca.Sesion.Redis
         /// Lista que indica los tipos de dato de .NET Framework que son inmutables. Esto permite identificar si es necesario marcar la
         /// colección como "sucia" (modificada) también con la lectura de elementos y no sólo con la escritura.
         /// </summary>
+#if !NET461
         private static readonly HashSet<Type> TiposInmutables = new HashSet<Type>(19)
+#else
+        private static readonly HashSet<Type> TiposInmutables = new HashSet<Type>()
+#endif
             {
                 typeof(string),
                 typeof(int),
@@ -162,12 +166,12 @@ namespace Banca.Sesion.Redis
                     {
                         escritorBinario.Write((byte)TipoDato.Int32);
                         byte[] bytes =
-                        {
-                            (byte)(valorInt >> 24),
-                            (byte)(0xFF & (valorInt >> 16)),
-                            (byte)(0xFF & (valorInt >> 8)),
-                            (byte)(0xFF & valorInt),
-                        };
+                            {
+                                (byte)(valorInt >> 24),
+                                (byte)(0xFF & (valorInt >> 16)),
+                                (byte)(0xFF & (valorInt >> 8)),
+                                (byte)(0xFF & valorInt),
+                            };
                         escritorBinario.Write(bytes);
                     }
                     else if (this.valor is bool valorBool)

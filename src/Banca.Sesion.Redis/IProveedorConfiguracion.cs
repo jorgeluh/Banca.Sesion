@@ -5,7 +5,9 @@
 namespace Banca.Sesion.Redis
 {
     using System;
+#if !NET461
     using System.Web;
+#endif
 
     /// <summary>
     /// Define los valores de configuración necesarios para almacenar el estado de sesión en Redis.
@@ -88,9 +90,11 @@ namespace Banca.Sesion.Redis
         /// </summary>
         bool CookieEnlaceSegura { get; }
 
+#if !NET461
         /// <summary>
         /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
         /// </summary>
         SameSiteMode CookieEnlaceMismoSitio { get; }
+#endif
     }
 }

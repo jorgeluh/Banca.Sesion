@@ -7,6 +7,9 @@ namespace Banca.Sesion.Asp
     using System;
     using System.Runtime.InteropServices;
     using System.Threading;
+#if !NET461
+    using System.Threading.Tasks;
+#endif
     using System.Web;
     using System.Web.SessionState;
     using Banca.Sesion.Redis;
@@ -124,8 +127,13 @@ namespace Banca.Sesion.Asp
                 if (this.datosSesion != null)
                 {
                     this.datosSesion[nombre] = value;
+#if !NET461
                     this.almacen.IntentarActualizarYLiberarBloqueoAsync(
                         this.identificadorBloqueo, this.datosSesion, (int)Configuraciones.TiempoEsperaSesion.TotalSeconds).Wait();
+#else
+                    this.almacen.IntentarActualizarYLiberarBloqueo(
+                        this.identificadorBloqueo, this.datosSesion, (int)Configuraciones.TiempoEsperaSesion.TotalSeconds);
+#endif
                 }
             }
         }
@@ -143,11 +151,17 @@ namespace Banca.Sesion.Asp
         public string Inicializar(string identificadorSesionNetFramework, string identificadorSesionNet, bool existeCookieEnlace)
         {
             this.almacen = new EnvoltorioConexionRedis(
-                Configuraciones, identificadorSesionNet, identificadorSesionNetFramework, existeCookieEnlace, out HttpCookie cookieEnlace);
+            Configuraciones, identificadorSesionNet, identificadorSesionNetFramework, existeCookieEnlace, out HttpCookie cookieEnlace);
             this.GenerarIdentificadorSesionAsp();
+#if !NET461
             return cookieEnlace != null ?
                 $"{cookieEnlace.Name}={cookieEnlace.Value}; expires={cookieEnlace.Expires.ToUniversalTime():R}; path={cookieEnlace.Path};{(cookieEnlace.Secure ? " secure;" : string.Empty)} samesite={cookieEnlace.SameSite.ToString().ToLower()};{(cookieEnlace.HttpOnly ? " httponly" : string.Empty)}" :
                 string.Empty;
+#else
+            return cookieEnlace != null ?
+                $"{cookieEnlace.Name}={cookieEnlace.Value}; expires={cookieEnlace.Expires.ToUniversalTime():R}; path={cookieEnlace.Path};{(cookieEnlace.Secure ? " secure;" : string.Empty)};{(cookieEnlace.HttpOnly ? " httponly" : string.Empty)}" :
+                string.Empty;
+#endif
         }
 
         /// <summary>
@@ -156,7 +170,11 @@ namespace Banca.Sesion.Asp
         /// </summary>
         public void Abandon()
         {
+#if !NET461
             this.almacen.IntentarEliminarYLiberarBloqueoAsync(this.identificadorBloqueo).Wait();
+#else
+            this.almacen.IntentarEliminarYLiberarBloqueo(this.identificadorBloqueo);
+#endif
         }
 
         /// <summary>
@@ -169,8 +187,13 @@ namespace Banca.Sesion.Asp
             if (this.datosSesion != null)
             {
                 this.datosSesion.Remove(nombre);
+#if !NET461
                 this.almacen.IntentarActualizarYLiberarBloqueoAsync(
                     this.identificadorBloqueo, this.datosSesion, (int)Configuraciones.TiempoEsperaSesion.TotalSeconds).Wait();
+#else
+                this.almacen.IntentarActualizarYLiberarBloqueo(
+                    this.identificadorBloqueo, this.datosSesion, (int)Configuraciones.TiempoEsperaSesion.TotalSeconds);
+#endif
             }
         }
 
@@ -208,12 +231,21 @@ namespace Banca.Sesion.Asp
             DatosSesion datosSesion;
             if (bloquearSesion)
             {
-                datosSesion = this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatosAsync(
-                    DateTime.Now, (int)Configuraciones.TiempoEsperaPeticion.TotalSeconds).GetAwaiter().GetResult();
+#if !NET461
+                datosSesion = Task.Run(() => this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatosAsync(
+                    DateTime.Now, (int)Configuraciones.TiempoEsperaPeticion.TotalSeconds)).Result;
+#else
+                datosSesion = this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatos(
+                    DateTime.Now, (int)Configuraciones.TiempoEsperaPeticion.TotalSeconds);
+#endif
             }
             else
             {
-                datosSesion = this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatosAsync().GetAwaiter().GetResult();
+#if !NET461
+                datosSesion = Task.Run(() => this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatosAsync()).Result;
+#else
+                datosSesion = this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatos();
+#endif
             }
 
             this.datosSesion = datosSesion.ElementosEstadoSesion;

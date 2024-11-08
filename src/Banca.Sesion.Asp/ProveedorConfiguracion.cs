@@ -97,9 +97,11 @@ namespace Banca.Sesion.Asp
         /// </summary>
         public bool CookieEnlaceSegura => Settings.Default.CookieEnlaceSegura;
 
+#if !NET461
         /// <summary>
         /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
         /// </summary>
         public SameSiteMode CookieEnlaceMismoSitio => Settings.Default.CookieEnlaceMismoSitio;
+#endif
     }
 }

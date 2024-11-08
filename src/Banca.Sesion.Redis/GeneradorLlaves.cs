@@ -4,7 +4,9 @@
 
 namespace Banca.Sesion.Redis
 {
+#if !NET461
     using System.Threading.Tasks;
+#endif
     using System.Web;
 
     /// <summary>
@@ -50,7 +52,11 @@ namespace Banca.Sesion.Redis
         {
             this.GenerarLlaves(identificadorSesion);
             this.enlazadorSesion = enlazadorSesion;
+#if !NET461
             cookieEnlace = Task.Run(() => this.enlazadorSesion.EnlazarAsync(this.LlaveSesion)).Result;
+#else
+            cookieEnlace = this.enlazadorSesion.Enlazar(this.LlaveSesion);
+#endif
         }
 
         /// <summary>
@@ -71,14 +77,23 @@ namespace Banca.Sesion.Redis
         /// Esto ejecuta también un nuevo enlace con la llave de Redis de .NET para el nuevo identificador de sesión.
         /// </remarks>
         /// <param name="identificadorSesion">El nuevo identificador de sesión de .NET Framework.</param>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es la cookie bandera de enlace de sesión si fue necesario crear un nuevo enlace. <c>null</c>
         /// en caso contrario.</returns>
         public async Task<HttpCookie> RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
+#else
+        /// <returns>La cookie bandera de enlace de sesión si fue necesario crear un nuevo enlace. <c>null</c> en caso contrario.</returns>
+        public HttpCookie RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion)
+#endif
         {
             if (!identificadorSesion.Equals(this.identificadorSesion))
             {
                 this.GenerarLlaves(identificadorSesion);
+#if !NET461
                 return await this.enlazadorSesion.EnlazarAsync(this.LlaveSesion, true);
+#else
+                return this.enlazadorSesion.Enlazar(this.LlaveSesion, true);
+#endif
             }
 
             return null;

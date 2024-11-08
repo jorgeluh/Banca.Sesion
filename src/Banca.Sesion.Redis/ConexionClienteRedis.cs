@@ -6,7 +6,9 @@ namespace Banca.Sesion.Redis
 {
     using System;
     using System.IO;
+#if !NET461
     using System.Threading.Tasks;
+#endif
     using System.Web.SessionState;
     using StackExchange.Redis;
 
@@ -49,9 +51,15 @@ namespace Banca.Sesion.Redis
         /// </param>
         /// <param name="valores">Los argumentos a emplear dentro del script del comando de Redis. Se acceden por medio del vector
         /// <c>ARGV</c>.</param>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es un objeto de tipo <see cref="RedisResult"/> que luego debe ser casteado según el tipo de
         /// resultado que se espera del script.</returns>
-        public Task<RedisResult> EvaluarAsync(string comando, string[] llaves, object[] valores)
+        public async Task<RedisResult> EvaluarAsync(string comando, string[] llaves, object[] valores)
+#else
+        /// <returns>Un objeto de tipo <see cref="RedisResult"/> que luego debe ser casteado según el tipo de resultado que se espera del
+        /// script.</returns>
+        public RedisResult Evaluar(string comando, string[] llaves, object[] valores)
+#endif
         {
             RedisKey[] llavesRedis = new RedisKey[llaves.Length];
             RedisValue[] valoresRedis = new RedisValue[valores.Length];
@@ -68,8 +76,13 @@ namespace Banca.Sesion.Redis
                 valoresRedis[i++] = valor is byte[] v ? (RedisValue)v : (RedisValue)valor?.ToString();
             }
 
-            return LogicaReintentos.EjecutarFuncionAsync(
+#if !NET461
+            return await LogicaReintentos.EjecutarFuncionAsync(
                 () => this.EjecutarOperacionAsync(comando, llavesRedis, valoresRedis), this.configuracion.TiempoEsperaReintentos);
+#else
+            return LogicaReintentos.EjecutarFuncion(
+                () => this.EjecutarOperacion(comando, llavesRedis, valoresRedis), this.configuracion.TiempoEsperaReintentos);
+#endif
         }
 
         /// <summary>
@@ -143,27 +156,48 @@ namespace Banca.Sesion.Redis
         /// para Redis.</param>
         /// <param name="valoresRedis">Los argumentos a emplear dentro del script del comando de Redis convertidos a un tipo de dato
         /// específico para Redis.</param>
-        /// <returns>El resultado de ejecutar el comando en Redis.</returns>
+#if !NET461
+        /// <returns>Una tarea cuyo resultado es el resultado de ejecutar el comando en Redis.</returns>
         private Task<RedisResult> EjecutarOperacionAsync(string comando, RedisKey[] llavesRedis, RedisValue[] valoresRedis)
+#else
+        /// <returns>El resultado de ejecutar el comando en Redis.</returns>
+        private RedisResult EjecutarOperacion(string comando, RedisKey[] llavesRedis, RedisValue[] valoresRedis)
+#endif
         {
             try
             {
+#if !NET461
                 return this.ConexionReal.ScriptEvaluateAsync(comando, llavesRedis, valoresRedis);
+#else
+                return this.ConexionReal.ScriptEvaluate(comando, llavesRedis, valoresRedis);
+#endif
             }
             catch (ObjectDisposedException)
             {
+#if !NET461
                 return this.ConexionReal.ScriptEvaluateAsync(comando, llavesRedis, valoresRedis);
+#else
+                return this.ConexionReal.ScriptEvaluate(comando, llavesRedis, valoresRedis);
+#endif
             }
             catch (RedisConnectionException)
             {
                 this.conexionCompartida.ForzarReconexion();
+#if !NET461
                 return this.ConexionReal.ScriptEvaluateAsync(comando, llavesRedis, valoresRedis);
+#else
+                return this.ConexionReal.ScriptEvaluate(comando, llavesRedis, valoresRedis);
+#endif
             }
             catch (Exception ex)
             {
                 if (ex.Message.Contains("NOSCRIPT"))
                 {
+#if !NET461
                     return this.ConexionReal.ScriptEvaluateAsync(comando, llavesRedis, valoresRedis);
+#else
+                    return this.ConexionReal.ScriptEvaluate(comando, llavesRedis, valoresRedis);
+#endif
                 }
 
                 throw;

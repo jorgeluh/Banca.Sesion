@@ -5,7 +5,9 @@
 namespace Banca.Sesion.Redis
 {
     using System;
+#if !NET461
     using System.Threading.Tasks;
+#endif
     using System.Web;
     using Banca.Sesion.Redis.ApiEnlace;
 
@@ -87,17 +89,29 @@ namespace Banca.Sesion.Redis
         /// <param name="identificadorSesion">El identificador de sesión de .NET Framework.</param>
         /// <param name="forzarEnlace">Sirve para anular la validación que omite las operaciones de enlace innecesarias. Es útil por ejemplo
         /// si el identificador de sesión ha sido modificado.</param>
-        /// <returns>La cookie de enlace que se emplea como bandera para no volver a realizar el enlace con cada petición.</returns>
+#if !NET461
+        /// <returns>Una tarea cuyo resultado es la cookie de enlace que se emplea como bandera para no volver a realizar el enlace con cada
+        /// petición.</returns>
         internal async Task<HttpCookie> EnlazarAsync(string identificadorSesion, bool forzarEnlace = false)
+#else
+        /// <returns>La cookie de enlace que se emplea como bandera para no volver a realizar el enlace con cada petición.</returns>
+        internal HttpCookie Enlazar(string identificadorSesion, bool forzarEnlace = false)
+#endif
         {
             if (!this.enlazarSesion && !forzarEnlace)
             {
                 return null;
             }
 
+#if !NET461
             int segundosExpiracionSesion = await LogicaReintentos.EjecutarFuncionAsync(
                 () => ClienteApi.EnlazarSesionAsync(identificadorSesion, this.identificadorSesionNet),
                 this.configuracion.TiempoEsperaReintentos);
+#else
+            int segundosExpiracionSesion = LogicaReintentos.EjecutarFuncion(
+                () => ClienteApi.EnlazarSesion(identificadorSesion, this.identificadorSesionNet),
+                this.configuracion.TiempoEsperaReintentos);
+#endif
             if (segundosExpiracionSesion > 0)
             {
                 this.enlazarSesion = false;
@@ -107,7 +121,9 @@ namespace Banca.Sesion.Redis
                         HttpOnly = this.configuracion.CookieEnlaceSoloHttp,
                         Path = this.configuracion.CookieEnlaceRuta,
                         Secure = this.configuracion.CookieEnlaceSegura,
-                        SameSite = this.configuracion.CookieEnlaceMismoSitio,
+#if !NET461
+                    SameSite = this.configuracion.CookieEnlaceMismoSitio,
+#endif
                     };
             }
 

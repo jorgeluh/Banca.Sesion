@@ -6,7 +6,9 @@ namespace Banca.Sesion.Redis
 {
     using System;
     using System.Threading;
+#if !NET461
     using System.Threading.Tasks;
+#endif
 
     /// <summary>
     /// Lógica para reintentar una operación durante un tiempo definido.
@@ -20,8 +22,14 @@ namespace Banca.Sesion.Redis
         /// <param name="tiempoEsperaReintentos">El tiempo máximo durante el cual se reintenta la operación antes de lanzar la excepción que
         /// obliga los reintentos.</param>
         /// <typeparam name="TResultado">El tipo de dato que se espera como resultado de la ejecución de la tarea.</typeparam>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es el resultado de la función.</returns>
-        public static async Task<TResultado> EjecutarFuncionAsync<TResultado>(Func<Task<TResultado>> funcion, TimeSpan tiempoEsperaReintentos)
+        public static async Task<TResultado> EjecutarFuncionAsync<TResultado>(
+            Func<Task<TResultado>> funcion, TimeSpan tiempoEsperaReintentos)
+#else
+        /// <returns>El resultado de la función.</returns>
+        public static TResultado EjecutarFuncion<TResultado>(Func<TResultado> funcion, TimeSpan tiempoEsperaReintentos)
+#endif
         {
             int milisegundosReintento = 20;
             DateTime horaInicio = DateTime.Now;
@@ -30,7 +38,11 @@ namespace Banca.Sesion.Redis
             {
                 try
                 {
+#if !NET461
                     return await funcion();
+#else
+                    return funcion();
+#endif
                 }
                 catch (Exception)
                 {
@@ -41,8 +53,7 @@ namespace Banca.Sesion.Redis
                     }
                     else
                     {
-                        int tiempoEsperaRestante =
-                            (int)(tiempoEsperaReintentos.TotalMilliseconds - tiempoTranscurrido.TotalMilliseconds);
+                        int tiempoEsperaRestante = (int)(tiempoEsperaReintentos.TotalMilliseconds - tiempoTranscurrido.TotalMilliseconds);
                         if (tiempoEsperaRestante < milisegundosReintento)
                         {
                             milisegundosReintento = tiempoEsperaRestante;

@@ -7,7 +7,9 @@ namespace Banca.Sesion.Redis
     using System;
     using System.Collections.Generic;
     using System.IO;
+#if !NET461
     using System.Threading.Tasks;
+#endif
     using System.Web;
     using System.Web.SessionState;
     using StackExchange.Redis;
@@ -237,12 +239,20 @@ namespace Banca.Sesion.Redis
         /// Actualiza el tiempo de expiración de las llaves en Redis para extenderlo.
         /// </summary>
         /// <param name="segundosParaExpirar">El tiempo de vida de la sesión en segundos.</param>
+#if !NET461
         /// <returns>Una tarea que permite esperar a que se actualice el tiempo de vida de la sesión.</returns>
-        public Task ActualizarTiempoExpiracionAsync(int segundosParaExpirar)
+        public async Task ActualizarTiempoExpiracionAsync(int segundosParaExpirar)
+#else
+        public void ActualizarTiempoExpiracion(int segundosParaExpirar)
+#endif
         {
             string[] llaves = new string[] { this.generadorLlaves.LlaveSesion };
             object[] valores = new object[] { GeneradorLlaves.CampoExpiracionSesion, segundosParaExpirar };
-            return this.conexionRedis.EvaluarAsync(ComandoActualizarTiempoParaExpirar, llaves, valores);
+#if !NET461
+            await this.conexionRedis.EvaluarAsync(ComandoActualizarTiempoParaExpirar, llaves, valores);
+#else
+            this.conexionRedis.Evaluar(ComandoActualizarTiempoParaExpirar, llaves, valores);
+#endif
         }
 
         /// <summary>
@@ -250,12 +260,20 @@ namespace Banca.Sesion.Redis
         /// </summary>
         /// <param name="datos">La colección de elementos de estado de sesión cuyos valores se van a actualizar en Redis.</param>
         /// <param name="segundosEsperaSesion">El tiempo de vida de la sesión en segundos.</param>
+#if !NET461
         /// <returns>Una tarea que permite esperar que se actualicen los datos en Redis.</returns>
         public async Task FijarAsync(ISessionStateItemCollection datos, int segundosEsperaSesion)
+#else
+        public void Fijar(ISessionStateItemCollection datos, int segundosEsperaSesion)
+#endif
         {
             if (this.PrepararFijar(datos, segundosEsperaSesion, out string[] llaves, out object[] valores))
             {
+#if !NET461
                 await this.conexionRedis.EvaluarAsync(ComandoFijar, llaves, valores);
+#else
+                this.conexionRedis.Evaluar(ComandoFijar, llaves, valores);
+#endif
             }
         }
 
@@ -266,14 +284,23 @@ namespace Banca.Sesion.Redis
         /// <param name="datos">La colección de elementos de estado de sesión que se va a actualizar en Redis.</param>
         /// <param name="segundosEsperaSesion">Los segundos de tiempo de espera de la sesión sin peticiones antes que sea
         /// descartada.</param>
+#if !NET461
         /// <returns>Una tarea que permite esperar que se actualicen los valores y se elimine el bloqueo en Redis.</returns>
         public async Task IntentarActualizarYLiberarBloqueoAsync(
             object identificadorBloqueo, ISessionStateItemCollection datos, int segundosEsperaSesion)
+#else
+        public void IntentarActualizarYLiberarBloqueo(
+            object identificadorBloqueo, ISessionStateItemCollection datos, int segundosEsperaSesion)
+#endif
         {
             if (this.PrepararIntentarActualizarYLiberarBloqueo(
                 identificadorBloqueo, datos, segundosEsperaSesion, out string[] llaves, out object[] valores))
             {
+#if !NET461
                 await this.conexionRedis.EvaluarAsync(ComandoEliminarBloqueoYActualizarDatosSesion, llaves, valores);
+#else
+                this.conexionRedis.Evaluar(ComandoEliminarBloqueoYActualizarDatosSesion, llaves, valores);
+#endif
             }
         }
 
@@ -281,13 +308,21 @@ namespace Banca.Sesion.Redis
         /// Elimina todas las llaves pertenecientes a la sesión en Redis.
         /// </summary>
         /// <param name="identificadorBloqueo">El identificador del bloqueo a eliminar.</param>
+#if !NET461
         /// <returns>Una tarea que permite esperar que se eliminen las llaves de sesión y sus bloqueos en Redis.</returns>
-        public Task IntentarEliminarYLiberarBloqueoAsync(object identificadorBloqueo)
+        public async Task IntentarEliminarYLiberarBloqueoAsync(object identificadorBloqueo)
+#else
+        public void IntentarEliminarYLiberarBloqueo(object identificadorBloqueo)
+#endif
         {
             string[] llaves = new string[] { this.generadorLlaves.LlaveSesion, this.generadorLlaves.LlaveBloqueo };
             identificadorBloqueo = identificadorBloqueo ?? string.Empty;
             object[] valores = { identificadorBloqueo.ToString() };
-            return this.conexionRedis.EvaluarAsync(ComandoEliminarSesion, llaves, valores);
+#if !NET461
+            await this.conexionRedis.EvaluarAsync(ComandoEliminarSesion, llaves, valores);
+#else
+            this.conexionRedis.Evaluar(ComandoEliminarSesion, llaves, valores);
+#endif
         }
 
         /// <summary>
@@ -295,12 +330,20 @@ namespace Banca.Sesion.Redis
         /// </summary>
         /// <param name="identificadorBloqueo">El identificador del bloqueo a eliminar.</param>
         /// <param name="segundosEsperaSesion">La duración en segundos que se extenderá la validez de las llaves de la sesión.</param>
+#if !NET461
         /// <returns>Una tarea que permite esperar que se libere el bloqueo en Redis.</returns>
-        public Task IntentarLiberarBloqueoSiIdentificadorBloqueoCoincideAsync(object identificadorBloqueo, int segundosEsperaSesion)
+        public async Task IntentarLiberarBloqueoSiIdentificadorBloqueoCoincideAsync(object identificadorBloqueo, int segundosEsperaSesion)
+#else
+        public void IntentarLiberarBloqueoSiIdentificadorBloqueoCoincide(object identificadorBloqueo, int segundosEsperaSesion)
+#endif
         {
             string[] llaves = new string[] { this.generadorLlaves.LlaveSesion, this.generadorLlaves.LlaveBloqueo };
             object[] valores = new object[] { GeneradorLlaves.CampoExpiracionSesion, identificadorBloqueo, segundosEsperaSesion };
-            return this.conexionRedis.EvaluarAsync(ComandoLiberarBloqueoEscrituraSiIdentificadorBloqueoCoincide, llaves, valores);
+#if !NET461
+            await this.conexionRedis.EvaluarAsync(ComandoLiberarBloqueoEscrituraSiIdentificadorBloqueoCoincide, llaves, valores);
+#else
+            this.conexionRedis.Evaluar(ComandoLiberarBloqueoEscrituraSiIdentificadorBloqueoCoincide, llaves, valores);
+#endif
         }
 
         /// <summary>
@@ -308,8 +351,13 @@ namespace Banca.Sesion.Redis
         /// </summary>
         /// <param name="horaBloqueo">La hora en la que inicia el bloqueo.</param>
         /// <param name="segundosEsperaBloqueo">La duración del bloqueo en segundos.</param>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es un objeto que contiene los elementos de estado de sesión y del bloqueo en Redis.</returns>
         public async Task<DatosSesion> IntentarTomarBloqueoEscrituraYObtenerDatosAsync(DateTime horaBloqueo, int segundosEsperaBloqueo)
+#else
+        /// <returns>Un objeto que contiene los elementos de estado de sesión y del bloqueo en Redis.</returns>
+        public DatosSesion IntentarTomarBloqueoEscrituraYObtenerDatos(DateTime horaBloqueo, int segundosEsperaBloqueo)
+#endif
         {
             string identificadorBloqueoEsperado = horaBloqueo.Ticks.ToString();
             string[] llaves = new string[] { this.generadorLlaves.LlaveSesion, this.generadorLlaves.LlaveBloqueo };
@@ -320,7 +368,11 @@ namespace Banca.Sesion.Redis
                     identificadorBloqueoEsperado,
                     segundosEsperaBloqueo,
                 };
+#if !NET461
             RedisResult datosSesionDesdeRedis = await this.conexionRedis.EvaluarAsync(ComandoEscribirBloqueoObtenerDatos, llaves, valores);
+#else
+            RedisResult datosSesionDesdeRedis = this.conexionRedis.Evaluar(ComandoEscribirBloqueoObtenerDatos, llaves, valores);
+#endif
 
             bool seTomoBloqueo = false;
             ISessionStateItemCollection elementosEstadoSesion = null;
@@ -340,12 +392,21 @@ namespace Banca.Sesion.Redis
         /// Comprueba si el identificador de bloqueo recibido es el mismo en Redis y consulta los valores de los elementos de estado de
         /// sesión.
         /// </summary>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es un objeto que contiene los elementos de estado de sesión y del bloqueo en Redis.</returns>
         public async Task<DatosSesion> IntentarVerificarBloqueoEscrituraYObtenerDatosAsync()
+#else
+        /// <returns>Una tarea cuyo resultado es un objeto que contiene los elementos de estado de sesión y del bloqueo en Redis.</returns>
+        public DatosSesion IntentarVerificarBloqueoEscrituraYObtenerDatos()
+#endif
         {
             string[] llaves = new string[] { this.generadorLlaves.LlaveSesion, this.generadorLlaves.LlaveBloqueo };
             object[] valores = new object[] { GeneradorLlaves.CampoExpiracionSesion, GeneradorLlaves.CampoDatos };
+#if !NET461
             RedisResult datosSesionDesdeRedis = await this.conexionRedis.EvaluarAsync(ComandoLeerBloqueoYObtenerDatos, llaves, valores);
+#else
+            RedisResult datosSesionDesdeRedis = this.conexionRedis.Evaluar(ComandoLeerBloqueoYObtenerDatos, llaves, valores);
+#endif
 
             bool seTomoBloqueo = false;
             ISessionStateItemCollection elementosEstadoSesion = null;
@@ -384,10 +445,19 @@ namespace Banca.Sesion.Redis
         /// obliga a enlazar la sesión de nuevo.
         /// </summary>
         /// <param name="identificadorSesion">El nuevo identificador de sesión.</param>
-        /// <returns>Una tarea cuyo resutlado es la cookie bandera de enlace de sesión.</returns>
-        public Task<HttpCookie> RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
+#if !NET461
+        /// <returns>Una tarea cuyo resultado es la cookie bandera de enlace de sesión.</returns>
+        public async Task<HttpCookie> RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
+#else
+        /// <returns>La cookie bandera de enlace de sesión.</returns>
+        public HttpCookie RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion)
+#endif
         {
-            return this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
+#if !NET461
+            return await this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
+#else
+            return this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesion);
+#endif
         }
 
         /// <summary>
@@ -408,12 +478,12 @@ namespace Banca.Sesion.Redis
                 byte[] coleccionElementosSesionSerializada = this.SerializarColeccionElementosEstadoSesion(datos);
                 llaves = new string[] { this.generadorLlaves.LlaveSesion };
                 valores = new object[]
-                {
-                    GeneradorLlaves.CampoDatos,
-                    coleccionElementosSesionSerializada,
-                    GeneradorLlaves.CampoExpiracionSesion,
-                    segundosEsperaSesion,
-                };
+                    {
+                        GeneradorLlaves.CampoDatos,
+                        coleccionElementosSesionSerializada,
+                        GeneradorLlaves.CampoExpiracionSesion,
+                        segundosEsperaSesion,
+                    };
                 return true;
             }
             catch

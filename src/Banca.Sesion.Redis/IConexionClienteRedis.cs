@@ -4,7 +4,9 @@
 
 namespace Banca.Sesion.Redis
 {
+#if !NET461
     using System.Threading.Tasks;
+#endif
     using System.Web.SessionState;
     using StackExchange.Redis;
 
@@ -26,9 +28,15 @@ namespace Banca.Sesion.Redis
         /// </param>
         /// <param name="valores">Los argumentos a emplear dentro del script del comando de Redis. Se acceden por medio del vector
         /// <c>ARGV</c>.</param>
+#if !NET461
         /// <returns>Una tarea cuyo resultado es un objeto de tipo <see cref="RedisResult"/> que luego debe ser casteado según el tipo de
         /// resultado que se espera del script.</returns>
         Task<RedisResult> EvaluarAsync(string comando, string[] llaves, object[] valores);
+#else
+        /// <returns>Un objeto de tipo <see cref="RedisResult"/> que luego debe ser casteado según el tipo de resultado que se espera del
+        /// script.</returns>
+        RedisResult Evaluar(string comando, string[] llaves, object[] valores);
+#endif
 
         /// <summary>
         /// Lee el identificador del bloqueo a partir del resultado del comando de Redis.

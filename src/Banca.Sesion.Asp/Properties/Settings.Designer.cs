@@ -77,15 +77,12 @@ namespace Banca.Sesion.Asp.Properties {
             }
         }
         
-        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Strict")]
-        public global::System.Web.SameSiteMode CookieEnlaceMismoSitio {
+        [global::System.Configuration.DefaultSettingValueAttribute("None")]
+        public string CookieEnlaceMismoSitio {
             get {
-                return ((global::System.Web.SameSiteMode)(this["CookieEnlaceMismoSitio"]));
-            }
-            set {
-                this["CookieEnlaceMismoSitio"] = value;
+                return ((string)(this["CookieEnlaceMismoSitio"]));
             }
         }
     }
