@@ -31,8 +31,7 @@ namespace Banca.Sesion.Redis
         /// </remarks>
         private const string ComandoEscribirBloqueoObtenerDatos = @"
             local retArray = {}
-            local llaveNet = redis.call('GET', KEYS[1])
-            local datosSesion = redis.call('HMGET', llaveNet, ARGV[1], ARGV[2])
+            local datosSesion = redis.call('HMGET', KEYS[1], ARGV[1], ARGV[2])
             local lockValue = ARGV[3]
             local locked = redis.call('SETNX', KEYS[2], ARGV[3])
             local IsLocked = true
@@ -52,7 +51,6 @@ namespace Banca.Sesion.Redis
                 SessionTimeout = SessionTimeout / 10000000
                 retArray[3] = SessionTimeout
                 redis.call('EXPIRE', KEYS[1], SessionTimeout)
-                redis.call('EXPIRE', llaveNet, SessionTimeout)
                 redis.call('EXPIRE', KEYS[2], SessionTimeout)
             else
                 retArray[3] = -1
@@ -66,8 +64,7 @@ namespace Banca.Sesion.Redis
         /// existentes.
         /// </summary>
         private const string ComandoLeerBloqueoYObtenerDatos = @"
-            local llaveNet = redis.call('GET', KEYS[1])
-            local datosSesion = redis.call('HMGET', llaveNet, ARGV[1], ARGV[2])
+            local datosSesion = redis.call('HMGET', KEYS[1], ARGV[1], ARGV[2])
             local retArray = {}
             local lockValue = ''
             local writeLockValue = redis.call('GET', KEYS[2])
@@ -81,7 +78,6 @@ namespace Banca.Sesion.Redis
             if SessionTimeout ~= false then
                 SessionTimeout = SessionTimeout / 10000000
                 retArray[3] = SessionTimeout
-                redis.call('EXPIRE', llaveNet, SessionTimeout)
                 redis.call('EXPIRE', KEYS[1], SessionTimeout)
                 redis.call('EXPIRE', KEYS[2], SessionTimeout)
             else
@@ -95,20 +91,18 @@ namespace Banca.Sesion.Redis
         /// existentes.
         /// </summary>
         private const string ComandoLiberarBloqueoEscrituraSiIdentificadorBloqueoCoincide = @"
-            local llaveNet = redis.call('GET', KEYS[1])
             local writeLockValueFromCache = redis.call('GET', KEYS[2])
             if writeLockValueFromCache == ARGV[2] then
                 redis.call('DEL', KEYS[2])
             end
 
-            local SessionTimeout = redis.call('HMGET', llaveNet, ARGV[1])[1]
+            local SessionTimeout = redis.call('HMGET', KEYS[1], ARGV[1])[1]
             if SessionTimeout and (type(SessionTimeout) == 'number' or type(SessionTimeout) == 'string') then
                 SessionTimeout = SessionTimeout / 10000000
             else
                 SessionTimeout = ARGV[3]
             end
 
-            redis.call('EXPIRE', llaveNet, SessionTimeout)
             redis.call('EXPIRE', KEYS[1], SessionTimeout)
             return 1";
 
@@ -116,21 +110,19 @@ namespace Banca.Sesion.Redis
         /// Comando que extiende la expiración de las llaves existentes.
         /// </summary>
         private const string ComandoActualizarTiempoParaExpirar = @"
-            local llaveNet = redis.call('GET', KEYS[1])
-            local dataExists = redis.call('EXISTS', llaveNet)
+            local dataExists = redis.call('EXISTS', KEYS[1])
             if dataExists == 0 then
                 return 1
             end
 
-            local SessionTimeout = redis.call('HMGET', llaveNet, ARGV[1])[1]
+            local SessionTimeout = redis.call('HMGET', KEYS[1], ARGV[1])[1]
             if SessionTimeout then
                 SessionTimeout = SessionTimeout / 10000000
             else
                 SessionTimeout = ARGV[2] * 10000000
-                redis.call('HSET', llaveNet, ARGV[1], SessionTimeout)
+                redis.call('HSET', KEYS[1], ARGV[1], SessionTimeout)
             end
 
-            redis.call('EXPIRE', llaveNet, SessionTimeout)
             redis.call('EXPIRE', KEYS[1], SessionTimeout)
             return 1";
 
@@ -138,10 +130,8 @@ namespace Banca.Sesion.Redis
         /// Comando que actualiza los valores de los elementos de estado de sesión y extiende la expiración de las llaves existentes.
         /// </summary>
         private const string ComandoFijar = @"
-            local llaveNet = redis.call('GET', KEYS[1])
             local SessionTimeout = ARGV[4] * 10000000
-            redis.call('HSET', llaveNet, ARGV[1], ARGV[2], ARGV[3], SessionTimeout)
-            redis.call('EXPIRE', llaveNet, ARGV[4])
+            redis.call('HSET', KEYS[1], ARGV[1], ARGV[2], ARGV[3], SessionTimeout)
             redis.call('EXPIRE', KEYS[1], ARGV[4])
             return 1";
 
@@ -157,11 +147,9 @@ namespace Banca.Sesion.Redis
                 end
             end
 
-            local llaveNet = redis.call('GET', KEYS[1])
-            if tonumber(ARGV[8]) ~= 0 then redis.call('HSET', llaveNet, ARGV[2], ARGV[12]) end
-            redis.call('HSET', llaveNet, ARGV[1], ARGV[4] * 10000000)
+            if tonumber(ARGV[8]) ~= 0 then redis.call('HSET', KEYS[1], ARGV[2], ARGV[12]) end
+            redis.call('HSET', KEYS[1], ARGV[1], ARGV[4] * 10000000)
             redis.call('EXPIRE', KEYS[1], ARGV[4])
-            redis.call('EXPIRE', llaveNet, ARGV[4])
             redis.call('DEL', KEYS[2])";
 
         /// <summary>
@@ -175,9 +163,7 @@ namespace Banca.Sesion.Redis
                 end
             end
 
-            local llaveNet = redis.call('GET', KEYS[1])
             redis.call('DEL', KEYS[1])
-            redis.call('DEL', llaveNet)
             redis.call('DEL', KEYS[2])";
 
         /// <summary>
@@ -207,19 +193,10 @@ namespace Banca.Sesion.Redis
         /// <param name="identificadorSesionNet">El identificador de sesión obtenido de la cookie de sesión de .NET. Este no debe tener
         /// ninguna codificación para evitar problemas al enviarlo a la API de enlace de sesión.</param>
         /// <param name="identificadorSesionNetFramework">El identificador de la sesión de .NET Framework.</param>
-        /// <param name="existeCookieEnlace">Indica si ya existe la cookie de enlace en la petición que se recibió (<c>true</c>) o no.
-        /// </param>
-        /// <param name="cookieEnlace">La cookie bandera de enlace de sesión. Es <c>null</c> si no es necesario agregarla a la
-        /// respuesta.</param>
         public EnvoltorioConexionRedis(
-            IProveedorConfiguracion configuracion,
-            string identificadorSesionNet,
-            string identificadorSesionNetFramework,
-            bool existeCookieEnlace,
-            out HttpCookie cookieEnlace)
+            IProveedorConfiguracion configuracion, string identificadorSesionNet, string identificadorSesionNetFramework)
         {
-            EnlazadorSesion enlazadorSesion = new EnlazadorSesion(identificadorSesionNet, configuracion, existeCookieEnlace);
-            this.generadorLlaves = new GeneradorLlaves(identificadorSesionNetFramework, enlazadorSesion, out cookieEnlace);
+            this.generadorLlaves = new GeneradorLlaves(identificadorSesionNetFramework);
 
             if (conexionCompartida == null)
             {

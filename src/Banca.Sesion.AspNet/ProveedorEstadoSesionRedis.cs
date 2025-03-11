@@ -19,8 +19,8 @@ namespace Banca.Sesion.AspNet
 
 /// <summary>
 /// Implementación de <see cref="SessionStateStoreProviderAsyncBase"/> que usa Redis como almacén de datos de estado de sesión y es
-/// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras
-/// aplicaciones web de .NET Framework y .NET.
+/// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras aplicaciones
+/// web de .NET Framework y .NET.
 /// </summary>
 #if !NET461
     public class ProveedorEstadoSesionRedis : SessionStateStoreProviderAsyncBase
@@ -591,32 +591,11 @@ namespace Banca.Sesion.AspNet
         /// <param name="identificadorSesionNetFramework">El identificador de la sesión de .NET Framework.</param>
         private void ObtenerAccesoAlmacen(string identificadorSesionNetFramework)
         {
-            HttpCookie cookieEnlace;
             if (this.almacen == null)
             {
                 string identificadorSesionNet =
                     HttpUtility.UrlDecode(HttpContext.Current.Request.Cookies[configuracion.NombreCookieSesionNet].Value);
-                bool existeCokieEnlace = HttpContext.Current.Request.Cookies[EnlazadorSesion.NombreCookieEnlace] != null;
-                this.almacen = new EnvoltorioConexionRedis(
-                    configuracion,
-                    identificadorSesionNet,
-                    identificadorSesionNetFramework,
-                    existeCokieEnlace,
-                    out cookieEnlace);
-            }
-            else
-            {
-#if !NET461
-                cookieEnlace =
-                    Task.Run(() => this.almacen.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesionNetFramework)).Result;
-#else
-                cookieEnlace = this.almacen.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesionNetFramework);
-#endif
-            }
-
-            if (cookieEnlace != null)
-            {
-                HttpContext.Current.Response.Cookies.Add(cookieEnlace);
+                this.almacen = new EnvoltorioConexionRedis(configuracion, identificadorSesionNet, identificadorSesionNetFramework);
             }
         }
     }

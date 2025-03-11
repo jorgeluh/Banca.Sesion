@@ -99,15 +99,11 @@
     <Reference Include="System.Web" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ApiEnlace\ClienteApi.cs" />
-    <Compile Include="ApiEnlace\ClienteHttp.cs" />
-    <Compile Include="ApiEnlace\FabricaPeticiones.cs" />
     <Compile Include="ColeccionElementosEstadoSesion.cs" />
     <Compile Include="ConexionClienteRedis.cs" />
     <Compile Include="ConexionCompartidaRedis.cs" />
     <Compile Include="DatosSesion.cs" />
     <Compile Include="ElementoEstadoSesion.cs" />
-    <Compile Include="EnlazadorSesion.cs" />
     <Compile Include="EnvoltorioConexionRedis.cs" />
     <Compile Include="ExtensionesBinaryReader.cs" />
     <Compile Include="ExtensionesBinaryWriter.cs" />
