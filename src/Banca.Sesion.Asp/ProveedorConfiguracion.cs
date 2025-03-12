@@ -5,7 +5,6 @@
 namespace Banca.Sesion.Asp
 {
     using System;
-    using System.Web;
     using Banca.Sesion.Asp.Properties;
     using Banca.Sesion.Redis;
 
@@ -81,27 +80,5 @@ namespace Banca.Sesion.Asp
         /// Obtiene el tiempo de espera máximo que se permite ejecutar esta petición.
         /// </summary>
         public TimeSpan TiempoEsperaPeticion => Settings.Default.TiempoEsperaPeticion;
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>httponly</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        public bool CookieEnlaceSoloHttp => true;
-
-        /// <summary>
-        /// Obtiene el valor para la propiedad <c>path</c> de la cookie de enlace.
-        /// </summary>
-        public string CookieEnlaceRuta => "/";
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>secure</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        public bool CookieEnlaceSegura => Settings.Default.CookieEnlaceSegura;
-
-#if !NET461
-        /// <summary>
-        /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
-        /// </summary>
-        public SameSiteMode CookieEnlaceMismoSitio => Settings.Default.CookieEnlaceMismoSitio;
-#endif
     }
 }

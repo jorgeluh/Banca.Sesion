@@ -14,7 +14,7 @@ namespace Banca.Sesion.Redis
     /// Esta clase también se encarga de ejecutar el enlace del identificador de sesión de .NET Framework con la llave de sesión de Redis
     /// para que los comandos funcionen correctamente.
     /// </remarks>
-    internal class GeneradorLlaves
+    public class GeneradorLlaves
     {
         /// <summary>
         /// El nombre del campo que emplea .NET para guardar los datos serializados de los elementos de estado de sesión.
@@ -77,7 +77,7 @@ namespace Banca.Sesion.Redis
         private void GenerarLlaves(string identificadorSesion)
         {
             this.identificadorSesion = identificadorSesion;
-            this.LlaveSesion = $"{identificadorSesion}_Enlace";
+            this.LlaveSesion = identificadorSesion;
             this.LlaveBloqueo = $"{identificadorSesion}_BloqueoEscritura";
         }
     }

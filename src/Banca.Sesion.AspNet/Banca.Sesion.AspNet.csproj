@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Banca.Sesion.AspNet</RootNamespace>
     <AssemblyName>Banca.Sesion.AspNet</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET461</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET48</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\Banca.Sesion.AspNet.xml</DocumentationFile>
@@ -62,12 +62,6 @@
     <Compile Include="ProveedorEstadoSesionRedis.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Banca.Sesion.Redis\Banca.Sesion.Redis.csproj">
-      <Project>{7cefe568-858e-48ac-9e83-ba4c8b514364}</Project>
-      <Name>Banca.Sesion.Redis</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
@@ -78,6 +72,12 @@
   <ItemGroup>
     <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Banca.Sesion.Redis\Banca.Sesion.Redis.csproj">
+      <Project>{7cefe568-858e-48ac-9e83-ba4c8b514364}</Project>
+      <Name>Banca.Sesion.Redis</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

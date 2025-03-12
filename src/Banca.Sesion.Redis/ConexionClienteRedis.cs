@@ -214,14 +214,21 @@ namespace Banca.Sesion.Redis
         {
             try
             {
-                using (MemoryStream flujoMemoria = new MemoryStream((byte[])coleccionElementosEstadoSesionSerializada))
+                if (!coleccionElementosEstadoSesionSerializada.IsNull)
                 {
-                    using (BinaryReader lector = new BinaryReader(flujoMemoria))
+                    using (MemoryStream flujoMemoria = new MemoryStream((byte[])coleccionElementosEstadoSesionSerializada))
                     {
-                        ColeccionElementosEstadoSesion coleccionElementosEstadoSesion = new ColeccionElementosEstadoSesion();
-                        coleccionElementosEstadoSesion.Deserializar(lector);
-                        return coleccionElementosEstadoSesion;
+                        using (BinaryReader lector = new BinaryReader(flujoMemoria))
+                        {
+                            ColeccionElementosEstadoSesion coleccionElementosEstadoSesion = new ColeccionElementosEstadoSesion();
+                            coleccionElementosEstadoSesion.Deserializar(lector);
+                            return coleccionElementosEstadoSesion;
+                        }
                     }
+                }
+                else
+                {
+                    return null;
                 }
             }
             catch

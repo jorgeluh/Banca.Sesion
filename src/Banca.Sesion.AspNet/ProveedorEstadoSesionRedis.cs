@@ -4,27 +4,36 @@
 
 namespace Banca.Sesion.AspNet
 {
+#if !NET461
     using System;
     using System.Collections.Specialized;
-#if !NET461
     using System.Threading;
     using System.Threading.Tasks;
-#endif
     using System.Web;
     using System.Web.SessionState;
     using Banca.Sesion.Redis;
-#if !NET461
     using Microsoft.AspNet.SessionState;
+#else
+    using System;
+    using System.Collections.Specialized;
+    using System.Web;
+    using System.Web.SessionState;
+    using Banca.Sesion.Redis;
 #endif
 
-/// <summary>
-/// Implementación de <see cref="SessionStateStoreProviderAsyncBase"/> que usa Redis como almacén de datos de estado de sesión y es
-/// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras aplicaciones
-/// web de .NET Framework y .NET.
-/// </summary>
 #if !NET461
+    /// <summary>
+    /// Implementación de <see cref="SessionStateStoreProviderAsyncBase"/> que usa Redis como almacén de datos de estado de sesión y es
+    /// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras
+    /// aplicaciones web de .NET Framework y .NET.
+    /// </summary>
     public class ProveedorEstadoSesionRedis : SessionStateStoreProviderAsyncBase
 #else
+    /// <summary>
+    /// Implementación de <see cref="SessionStateStoreProviderAsync"/> que usa Redis como almacén de datos de estado de sesión y es
+    /// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras
+    /// aplicaciones web de .NET Framework y .NET.
+    /// </summary>
     public class ProveedorEstadoSesionRedis : SessionStateStoreProviderBase
 #endif
     {
@@ -105,54 +114,15 @@ namespace Banca.Sesion.AspNet
         }
 
         /// <summary>
-        /// Crea un nuevo objeto <see cref="SessionStateStoreData"/> para ser usado para la petición actual.
+        /// Fija una referencia al delegado <see cref="SessionStateItemExpireCallback"/> para el evento <c>Session_OnEnd</c>.
         /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición actual.</param>
-        /// <param name="timeout">El valor del tiempo de espera del estado de sesión para el nuevo <see cref="SessionStateStoreData"/>.
+        /// <param name="expireCallback">El método que maneja al evento <see cref="SessionStateModule.End"/> del módulo de estado de sesión.
         /// </param>
-        /// <returns>El nuevo almacén de datos de estado de sesión para la petición.</returns>
-#if !NET461
-        public override SessionStateStoreData CreateNewStoreData(HttpContextBase context, int timeout)
-#else
-        public override SessionStateStoreData CreateNewStoreData(HttpContext context, int timeout)
-#endif
+        /// <returns><c>true</c> si el proveedor de estado de almacén de sesión soporta llamar al evento <c>Session_OnEnd</c>; <c>false</c>
+        /// en caso contrario.</returns>
+        public override bool SetItemExpireCallback(SessionStateItemExpireCallback expireCallback)
         {
-            return new SessionStateStoreData(new ColeccionElementosEstadoSesion(), new HttpStaticObjectsCollection(), timeout);
-        }
-
-        /// <summary>
-        /// Crea un elemento de sesión no inicializado.
-        /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
-        /// <param name="id">El identificador de sesión.</param>
-        /// <param name="timeout">El valor del tiempo de espera de la sesión.</param>
-#if !NET461
-        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
-        /// <returns>El elemento de sesión no inicializado.</returns>
-        public override async Task CreateUninitializedItemAsync(
-            HttpContextBase context, string id, int timeout, CancellationToken cancellationToken)
-#else
-        public override void CreateUninitializedItem(HttpContext context, string id, int timeout)
-#endif
-        {
-            try
-            {
-                ISessionStateItemCollection datosSesion = new ColeccionElementosEstadoSesion();
-                datosSesion[VariableSesionAcciones] = SessionStateActions.InitializeItem;
-                this.ObtenerAccesoAlmacen(id);
-#if !NET461
-                await this.almacen.FijarAsync(datosSesion, timeout * 60);
-#else
-                this.almacen.Fijar(datosSesion, timeout * 60);
-#endif
-            }
-            catch
-            {
-                if (configuracion.ArrojarConError)
-                {
-                    throw;
-                }
-            }
+            return false;
         }
 
         /// <summary>
@@ -162,16 +132,21 @@ namespace Banca.Sesion.AspNet
         {
         }
 
-        /// <summary>
-        /// Llamada asíncrona para el evento <c>EndRequest</c>.
-        /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición actual.</param>
 #if !NET461
+        /// <summary>
+        /// Llamado al inicio del evento <c>AcquireRequestState</c>.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
+        public override void InitializeRequest(HttpContextBase context)
+        {
+        }
+
+        /// <summary>
+        /// Llamada asíncrona para el evento <c>EndRequestAsync</c>.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición actual.</param>
         /// <returns>Una tarea que permite esperar la finalización de la ejecución del evento.</returns>
         public override async Task EndRequestAsync(HttpContextBase context)
-#else
-        public override void EndRequest(HttpContext context)
-#endif
         {
             try
             {
@@ -188,13 +163,8 @@ namespace Banca.Sesion.AspNet
                 if (this.identificadorSesion != null && this.identificadorBloqueoSesion != null)
                 {
                     this.ObtenerAccesoAlmacen(this.identificadorSesion);
-#if !NET461
                     await this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincideAsync(
                         this.identificadorBloqueoSesion, segundosTiempoEsperaSesion);
-#else
-                    this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincide(
-                        this.identificadorBloqueoSesion, segundosTiempoEsperaSesion);
-#endif
                     this.identificadorSesion = null;
                     this.identificadorBloqueoSesion = null;
                 }
@@ -211,58 +181,117 @@ namespace Banca.Sesion.AspNet
         }
 
         /// <summary>
-        /// Recupera un elemento de sesión sin bloqueo.
+        /// Crea un nuevo objeto <see cref="SessionStateStoreData"/> para ser usado para la petición actual.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición actual.</param>
+        /// <param name="timeout">El valor del tiempo de espera del estado de sesión para el nuevo <see cref="SessionStateStoreData"/>.
+        /// </param>
+        /// <returns>El nuevo almacén de datos de estado de sesión para la petición.</returns>
+        public override SessionStateStoreData CreateNewStoreData(HttpContextBase context, int timeout)
+        {
+            return new SessionStateStoreData(new ColeccionElementosEstadoSesion(), new HttpStaticObjectsCollection(), timeout);
+        }
+
+        /// <summary>
+        /// Crea un elemento de sesión no inicializado.
         /// </summary>
         /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de sesión.</param>
+        /// <param name="timeout">El valor del tiempo de espera de la sesión.</param>
+        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
+        /// <returns>El elemento de sesión no inicializado.</returns>
+        public override async Task CreateUninitializedItemAsync(
+            HttpContextBase context, string id, int timeout, CancellationToken cancellationToken)
+        {
+            try
+            {
+                ISessionStateItemCollection datosSesion = new ColeccionElementosEstadoSesion();
+                datosSesion[VariableSesionAcciones] = SessionStateActions.InitializeItem;
+                this.ObtenerAccesoAlmacen(id);
+                await this.almacen.FijarAsync(datosSesion, timeout * 60);
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recupera un elemento de sesión sin bloqueo.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
         /// <param name="id">El identificador de la sesión.</param>
-#if !NET461
         /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
         /// <returns>Una tarea que recupera el elemento de sesión sin bloqueo.</returns>
         public override async Task<GetItemResult> GetItemAsync(HttpContextBase context, string id, CancellationToken cancellationToken)
-#else
-        public override SessionStateStoreData GetItem(
-            HttpContext context, string id, out bool locked, out TimeSpan lockAge, out object lockId, out SessionStateActions actions)
-#endif
         {
-#if !NET461
             return await this.ObtenerElementoDesdeAlmacenSesionAsync(false, context, id, cancellationToken);
-#else
-            return this.ObtenerElementoDesdeAlmacenSesion(false, context, id, out locked, out lockAge, out lockId, out actions);
-#endif
         }
 
         /// <summary>
         /// Recupera un elemento de sesión con bloqueo.
         /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
         /// <param name="id">El identificador de la sesión.</param>
-#if !NET461
         /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
         /// <returns>Una tarea que recupera el elemento de sesión con bloqueo.</returns>
-        public override Task<GetItemResult> GetItemExclusiveAsync(
+        public override async Task<GetItemResult> GetItemExclusiveAsync(
             HttpContextBase context, string id, CancellationToken cancellationToken)
-#else
-        public override SessionStateStoreData GetItemExclusive(
-            HttpContext context, string id, out bool locked, out TimeSpan lockAge, out object lockId, out SessionStateActions actions)
-#endif
         {
-#if !NET461
-            return this.ObtenerElementoDesdeAlmacenSesionAsync(true, context, id, cancellationToken);
-#else
-            return this.ObtenerElementoDesdeAlmacenSesion(true, context, id, out locked, out lockAge, out lockId, out actions);
-#endif
+            return await this.ObtenerElementoDesdeAlmacenSesionAsync(true, context, id, cancellationToken);
         }
 
         /// <summary>
-        /// Llamado al inicio del evento <c>AcquireRequestState</c>.
+        /// Reinicia el tiempo de expiración para un elemento basado en su tiempo de espera.
         /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
-#if !NET461
-        public override void InitializeRequest(HttpContextBase context)
-#else
-        public override void InitializeRequest(HttpContext context)
-#endif
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
+        /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
+        public override async Task ResetItemTimeoutAsync(HttpContextBase context, string id, CancellationToken cancellationToken)
         {
+            try
+            {
+                this.ObtenerAccesoAlmacen(id);
+                await this.almacen.ActualizarTiempoExpiracionAsync((int)configuracion.TiempoEsperaSesion.TotalSeconds);
+                this.almacen = null;
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Elimina el elemento de sesión del almacén.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        /// <param name="lockId">El identificador del bloqueo de sesión.</param>
+        /// <param name="item">El elemento de sesión a eliminar.</param>
+        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
+        /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
+        public override async Task RemoveItemAsync(
+            HttpContextBase context, string id, object lockId, SessionStateStoreData item, CancellationToken cancellationToken)
+        {
+            try
+            {
+                this.ObtenerAccesoAlmacen(id);
+                await this.almacen.IntentarEliminarYLiberarBloqueoAsync(lockId);
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
         }
 
         /// <summary>
@@ -272,14 +301,10 @@ namespace Banca.Sesion.AspNet
         /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
         /// <param name="id">El identificador de la sesión.</param>
         /// <param name="lockId">El identificador del bloqueo de sesión.</param>
-#if !NET461
         /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
         /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
         public override async Task ReleaseItemExclusiveAsync(
             HttpContextBase context, string id, object lockId, CancellationToken cancellationToken)
-#else
-        public override void ReleaseItemExclusive(HttpContext context, string id, object lockId)
-#endif
         {
             try
             {
@@ -296,11 +321,7 @@ namespace Banca.Sesion.AspNet
                 if (lockId != null)
                 {
                     this.ObtenerAccesoAlmacen(id);
-#if !NET461
                     await this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincideAsync(lockId, segundosTiempoEsperaSesion);
-#else
-                    this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincide(lockId, segundosTiempoEsperaSesion);
-#endif
                     this.identificadorSesion = null;
                     this.identificadorBloqueoSesion = null;
                 }
@@ -315,81 +336,14 @@ namespace Banca.Sesion.AspNet
         }
 
         /// <summary>
-        /// Elimina el elemento de sesión del almacén.
-        /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
-        /// <param name="id">El identificador de la sesión.</param>
-        /// <param name="lockId">El identificador del bloqueo de sesión.</param>
-        /// <param name="item">El elemento de sesión a eliminar.</param>
-#if !NET461
-        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
-        /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
-        public override async Task RemoveItemAsync(
-            HttpContextBase context, string id, object lockId, SessionStateStoreData item, CancellationToken cancellationToken)
-#else
-        public override void RemoveItem(HttpContext context, string id, object lockId, SessionStateStoreData item)
-#endif
-        {
-            try
-            {
-                this.ObtenerAccesoAlmacen(id);
-#if !NET461
-                await this.almacen.IntentarEliminarYLiberarBloqueoAsync(lockId);
-#else
-                this.almacen.IntentarEliminarYLiberarBloqueo(lockId);
-#endif
-            }
-            catch
-            {
-                if (configuracion.ArrojarConError)
-                {
-                    throw;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Reinicia el tiempo de expiración para un elemento basado en su tiempo de espera.
-        /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
-        /// <param name="id">El identificador de la sesión.</param>
-#if !NET461
-        /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
-        /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
-        public override async Task ResetItemTimeoutAsync(HttpContextBase context, string id, CancellationToken cancellationToken)
-#else
-        public override void ResetItemTimeout(HttpContext context, string id)
-#endif
-        {
-            try
-            {
-                this.ObtenerAccesoAlmacen(id);
-#if !NET461
-                await this.almacen.ActualizarTiempoExpiracionAsync((int)configuracion.TiempoEsperaSesion.TotalSeconds);
-#else
-                this.almacen.ActualizarTiempoExpiracion((int)configuracion.TiempoEsperaSesion.TotalSeconds);
-#endif
-                this.almacen = null;
-            }
-            catch
-            {
-                if (configuracion.ArrojarConError)
-                {
-                    throw;
-                }
-            }
-        }
-
-        /// <summary>
         /// Actualiza la información del elemento de sesión en el almacén de datos del estado de sesión con valores de la petición actual, y
         /// libera el bloqueo de los datos.
         /// </summary>
-        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="context">El <see cref="HttpContextBase"/> de la petición.</param>
         /// <param name="id">El identificador de la sesión.</param>
         /// <param name="item">Los datos de la sesión.</param>
         /// <param name="lockId">El identificador del bloqueo de sesión.</param>
         /// <param name="newItem">Si se trata de un nuevo elemento de sesión.</param>
-#if !NET461
         /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
         /// <returns>Una tarea que permite esperar la finalización del proceso.</returns>
         public override async Task SetAndReleaseItemExclusiveAsync(
@@ -399,10 +353,6 @@ namespace Banca.Sesion.AspNet
             object lockId,
             bool newItem,
             CancellationToken cancellationToken)
-#else
-        public override void SetAndReleaseItemExclusive(
-            HttpContext context, string id, SessionStateStoreData item, object lockId, bool newItem)
-#endif
         {
             try
             {
@@ -424,11 +374,7 @@ namespace Banca.Sesion.AspNet
                         elementosSesion.Remove(VariableSesionAcciones);
                     }
 
-#if !NET461
                     await this.almacen.FijarAsync(elementosSesion, item.Timeout * 60);
-#else
-                    this.almacen.Fijar(elementosSesion, item.Timeout * 60);
-#endif
                 }
                 else
                 {
@@ -439,11 +385,7 @@ namespace Banca.Sesion.AspNet
                             item.Items.Remove(VariableSesionAcciones);
                         }
 
-#if !NET461
                         await this.almacen.IntentarActualizarYLiberarBloqueoAsync(lockId, item.Items, item.Timeout * 60);
-#else
-                        this.almacen.IntentarActualizarYLiberarBloqueo(lockId, item.Items, item.Timeout * 60);
-#endif
                     }
                 }
             }
@@ -457,15 +399,338 @@ namespace Banca.Sesion.AspNet
         }
 
         /// <summary>
-        /// Fija una referencia al delegado <see cref="SessionStateItemExpireCallback"/> para el evento <c>Session_OnEnd</c>.
+        /// Recupera los datos de un elemento de estado de sesión desde el almacén.
         /// </summary>
-        /// <param name="expireCallback">El método que maneja al evento <see cref="SessionStateModule.End"/> del módulo de estado de sesión.
-        /// </param>
-        /// <returns><c>true</c> si el proveedor de estado de almacén de sesión soporta llamar al evento <c>Session_OnEnd</c>; <c>false</c>
-        /// en caso contrario.</returns>
-        public override bool SetItemExpireCallback(SessionStateItemExpireCallback expireCallback)
+        /// <param name="seRequiereBloqueoEscritura">Indica si se requiere crear un bloqueo de escritura para la sesión.</param>
+        /// <param name="contexto">El <see cref="HttpContext"/> de la petición actual.</param>
+        /// <param name="identificadorSesion">El identificador de la sesión.</param>
+        /// <param name="tokenCancelacion">El token de cancelación para la tarea asíncrona.</param>
+        /// <returns>Una tarea cuyo resultado es el estado de sesión recuperado desde Redis.</returns>
+        private async Task<GetItemResult> ObtenerElementoDesdeAlmacenSesionAsync(
+            bool seRequiereBloqueoEscritura, HttpContextBase contexto, string identificadorSesion, CancellationToken tokenCancelacion)
         {
-            return false;
+            bool estaBloqueada = false;
+            TimeSpan tiempoBloqueo = TimeSpan.Zero;
+            object identificadorBloqueo = 0;
+            SessionStateActions acciones = SessionStateActions.None;
+            try
+            {
+                if (identificadorSesion == null)
+                {
+                    return new GetItemResult(null, estaBloqueada, tiempoBloqueo, identificadorBloqueo, acciones);
+                }
+
+                this.ObtenerAccesoAlmacen(identificadorSesion);
+                ISessionStateItemCollection elementosEstadoSesion = null;
+
+                int segundosEsperaSesion;
+                bool seTomoBloqueo = false;
+                DatosSesion datosSesion;
+                if (seRequiereBloqueoEscritura)
+                {
+                    datosSesion = await this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatosAsync(
+                        DateTime.Now, (int)configuracion.TiempoEsperaPeticion.TotalSeconds);
+                    this.identificadorSesion = identificadorSesion;
+                    this.identificadorBloqueoSesion = datosSesion.IdentificadorBloqueo;
+                }
+                else
+                {
+                    datosSesion = await this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatosAsync();
+                }
+
+                segundosEsperaSesion = datosSesion.SegundosEsperaSesion;
+                seTomoBloqueo = datosSesion.SeTomoBloqueo;
+                elementosEstadoSesion = datosSesion.ElementosEstadoSesion;
+                if (seTomoBloqueo)
+                {
+                    estaBloqueada = false;
+                }
+                else
+                {
+                    this.identificadorSesion = null;
+                    this.identificadorBloqueoSesion = null;
+                    estaBloqueada = true;
+                }
+
+                if (estaBloqueada)
+                {
+                    tiempoBloqueo = this.almacen.ObtenerTiempoBloqueo(datosSesion.IdentificadorBloqueo);
+                    return new GetItemResult(null, estaBloqueada, tiempoBloqueo, identificadorBloqueo, acciones);
+                }
+
+                if (elementosEstadoSesion == null)
+                {
+                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, identificadorBloqueo, tokenCancelacion);
+                    return new GetItemResult(null, estaBloqueada, tiempoBloqueo, identificadorBloqueo, acciones);
+                }
+
+                if (elementosEstadoSesion[VariableSesionAcciones] != null)
+                {
+                    acciones = (SessionStateActions)elementosEstadoSesion[VariableSesionAcciones];
+                }
+
+                elementosEstadoSesion.Dirty = false;
+                SessionStateStoreData datosAlmacenEstadoSesion =
+                    new SessionStateStoreData(elementosEstadoSesion, new HttpStaticObjectsCollection(), segundosEsperaSesion);
+                return new GetItemResult(datosAlmacenEstadoSesion, estaBloqueada, tiempoBloqueo, identificadorBloqueo, acciones);
+            }
+            catch
+            {
+                estaBloqueada = false;
+                identificadorBloqueo = null;
+                tiempoBloqueo = TimeSpan.Zero;
+                acciones = SessionStateActions.None;
+
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+
+                return new GetItemResult(null, estaBloqueada, tiempoBloqueo, identificadorBloqueo, acciones);
+            }
+        }
+#else
+        /// <summary>
+        /// Llamado al inicio del evento <c>AcquireRequestState</c>.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        public override void InitializeRequest(HttpContext context)
+        {
+        }
+
+        /// <summary>
+        /// Llamada asíncrona para el evento <c>EndRequest</c>.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición actual.</param>
+        public override void EndRequest(HttpContext context)
+        {
+            try
+            {
+                int segundosTiempoEsperaSesion;
+                if (context != null && context.Session != null)
+                {
+                    segundosTiempoEsperaSesion = context.Session.Timeout * 60;
+                }
+                else
+                {
+                    segundosTiempoEsperaSesion = (int)configuracion.TiempoEsperaSesion.TotalSeconds;
+                }
+
+                if (this.identificadorSesion != null && this.identificadorBloqueoSesion != null)
+                {
+                    this.ObtenerAccesoAlmacen(this.identificadorSesion);
+                    this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincide(
+                        this.identificadorBloqueoSesion, segundosTiempoEsperaSesion);
+                    this.identificadorSesion = null;
+                    this.identificadorBloqueoSesion = null;
+                }
+
+                this.almacen = null;
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Crea un nuevo objeto <see cref="SessionStateStoreData"/> para ser usado para la petición actual.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición actual.</param>
+        /// <param name="timeout">El valor del tiempo de espera del estado de sesión para el nuevo <see cref="SessionStateStoreData"/>.
+        /// </param>
+        /// <returns>El nuevo almacén de datos de estado de sesión para la petición.</returns>
+        public override SessionStateStoreData CreateNewStoreData(HttpContext context, int timeout)
+        {
+            return new SessionStateStoreData(new ColeccionElementosEstadoSesion(), new HttpStaticObjectsCollection(), timeout);
+        }
+
+        /// <summary>
+        /// Crea un elemento de sesión no inicializado.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de sesión.</param>
+        /// <param name="timeout">El valor del tiempo de espera de la sesión.</param>
+        public override void CreateUninitializedItem(HttpContext context, string id, int timeout)
+        {
+            try
+            {
+                ISessionStateItemCollection datosSesion = new ColeccionElementosEstadoSesion();
+                datosSesion[VariableSesionAcciones] = SessionStateActions.InitializeItem;
+                this.ObtenerAccesoAlmacen(id);
+                this.almacen.Fijar(datosSesion, timeout * 60);
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recupera un elemento de sesión sin bloqueo.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        public override SessionStateStoreData GetItem(
+            HttpContext context, string id, out bool locked, out TimeSpan lockAge, out object lockId, out SessionStateActions actions)
+        {
+            return this.ObtenerElementoDesdeAlmacenSesion(false, context, id, out locked, out lockAge, out lockId, out actions);
+        }
+
+        /// <summary>
+        /// Recupera un elemento de sesión con bloqueo.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        public override SessionStateStoreData GetItemExclusive(
+            HttpContext context, string id, out bool locked, out TimeSpan lockAge, out object lockId, out SessionStateActions actions)
+        {
+            return this.ObtenerElementoDesdeAlmacenSesion(true, context, id, out locked, out lockAge, out lockId, out actions);
+        }
+        
+        /// <summary>
+        /// Reinicia el tiempo de expiración para un elemento basado en su tiempo de espera.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        public override void ResetItemTimeout(HttpContext context, string id)
+        {
+            try
+            {
+                this.ObtenerAccesoAlmacen(id);
+                this.almacen.ActualizarTiempoExpiracion((int)configuracion.TiempoEsperaSesion.TotalSeconds);
+                this.almacen = null;
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Elimina el elemento de sesión del almacén.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        /// <param name="lockId">El identificador del bloqueo de sesión.</param>
+        /// <param name="item">El elemento de sesión a eliminar.</param>
+        public override void RemoveItem(HttpContext context, string id, object lockId, SessionStateStoreData item)
+        {
+            try
+            {
+                this.ObtenerAccesoAlmacen(id);
+                this.almacen.IntentarEliminarYLiberarBloqueo(lockId);
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Libera un elemento bloqueado por <c>GetExclusive</c>
+        /// (<see cref="GetItemExclusiveAsync(HttpContext, string, CancellationToken)"/>).
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        /// <param name="lockId">El identificador del bloqueo de sesión.</param>
+        public override void ReleaseItemExclusive(HttpContext context, string id, object lockId)
+        {
+            try
+            {
+                int segundosTiempoEsperaSesion;
+                if (context != null && context.Session != null)
+                {
+                    segundosTiempoEsperaSesion = context.Session.Timeout * 60;
+                }
+                else
+                {
+                    segundosTiempoEsperaSesion = (int)configuracion.TiempoEsperaSesion.TotalSeconds;
+                }
+
+                if (lockId != null)
+                {
+                    this.ObtenerAccesoAlmacen(id);
+                    this.almacen.IntentarLiberarBloqueoSiIdentificadorBloqueoCoincide(lockId, segundosTiempoEsperaSesion);
+                    this.identificadorSesion = null;
+                    this.identificadorBloqueoSesion = null;
+                }
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Actualiza la información del elemento de sesión en el almacén de datos del estado de sesión con valores de la petición actual, y
+        /// libera el bloqueo de los datos.
+        /// </summary>
+        /// <param name="context">El <see cref="HttpContext"/> de la petición.</param>
+        /// <param name="id">El identificador de la sesión.</param>
+        /// <param name="item">Los datos de la sesión.</param>
+        /// <param name="lockId">El identificador del bloqueo de sesión.</param>
+        /// <param name="newItem">Si se trata de un nuevo elemento de sesión.</param>
+        public override void SetAndReleaseItemExclusive(
+            HttpContext context, string id, SessionStateStoreData item, object lockId, bool newItem)
+        {
+            try
+            {
+                this.ObtenerAccesoAlmacen(id);
+                if (newItem)
+                {
+                    ISessionStateItemCollection elementosSesion = null;
+                    if (item != null && item.Items != null)
+                    {
+                        elementosSesion = item.Items;
+                    }
+                    else
+                    {
+                        elementosSesion = new ColeccionElementosEstadoSesion();
+                    }
+
+                    if (elementosSesion[VariableSesionAcciones] != null)
+                    {
+                        elementosSesion.Remove(VariableSesionAcciones);
+                    }
+
+                    this.almacen.Fijar(elementosSesion, item.Timeout * 60);
+                }
+                else
+                {
+                    if (item != null && item.Items != null)
+                    {
+                        if (item.Items[VariableSesionAcciones] != null)
+                        {
+                            item.Items.Remove(VariableSesionAcciones);
+                        }
+
+                        this.almacen.IntentarActualizarYLiberarBloqueo(lockId, item.Items, item.Timeout * 60);
+                    }
+                }
+            }
+            catch
+            {
+                if (configuracion.ArrojarConError)
+                {
+                    throw;
+                }
+            }
         }
 
         /// <summary>
@@ -474,128 +739,114 @@ namespace Banca.Sesion.AspNet
         /// <param name="seRequiereBloqueoEscritura">Indica si se requiere crear un bloqueo de escritura para la sesión.</param>
         /// <param name="contexto">El <see cref="HttpContext"/> de la petición actual.</param>
         /// <param name="identificadorSesion">El identificador de la sesión.</param>
-#if !NET461
-        /// <param name="tokenCancelacion">El token de cancelación para la tarea asíncrona.</param>
-        /// <returns>Una tarea cuyo resultado es el estado de sesión recuperado desde Redis.</returns>
-        private async Task<GetItemResult> ObtenerElementoDesdeAlmacenSesionAsync(
-            bool seRequiereBloqueoEscritura, HttpContextBase contexto, string identificadorSesion, CancellationToken tokenCancelacion)
-#else
-        /// <param name="bloqueado"><c>true</c> indica que sí se pudo establecer el bloqueo de la sesión.</param>
+        /// <param name="estaBloqueada"><c>true</c> indica que sí se pudo establecer el bloqueo de la sesión.</param>
         /// <param name="tiempoBloqueo">El tiempo establecido para el bloqueo de la sesión.</param>
         /// <param name="identificadorBloqueo">El identificador del bloqueo establecido para la sesión.</param>
         /// <param name="acciones">Indica si la sesión fue inicializada o si no se tomó ninguna acción.</param>
         /// <returns>El almacén de datos de estado de sesión.</returns>
         private SessionStateStoreData ObtenerElementoDesdeAlmacenSesion(
             bool seRequiereBloqueoEscritura,
-            HttpContext contexto,
+            HttpContextBase contexto,
             string identificadorSesion,
-            out bool bloqueado,
+            out bool estaBloqueada,
             out TimeSpan tiempoBloqueo,
             out object identificadorBloqueo,
             out SessionStateActions acciones)
-#endif
         {
-#if !NET461
-            TimeSpan tiempoBloqueo = TimeSpan.Zero;
-            SessionStateActions acciones = SessionStateActions.None;
-#else
-            bloqueado = false;
-            tiempoBloqueo = TimeSpan.Zero;
-            identificadorBloqueo = 0;
-            acciones = SessionStateActions.None;
-#endif
-
             try
             {
+                estaBloqueada = false;
+                tiempoBloqueo = TimeSpan.Zero;
+                identificadorBloqueo = 0;
+                acciones = SessionStateActions.None;
+
                 if (identificadorSesion == null)
                 {
                     return null;
                 }
 
                 this.ObtenerAccesoAlmacen(identificadorSesion);
+                ISessionStateItemCollection elementosEstadoSesion = null;
+
+                int segundosEsperaSesion;
+                bool seTomoBloqueo = false;
                 DatosSesion datosSesion;
                 if (seRequiereBloqueoEscritura)
                 {
-#if !NET461
-                    datosSesion = await this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatosAsync(
-                        DateTime.Now, (int)configuracion.TiempoEsperaPeticion.TotalSeconds);
-#else
                     datosSesion = this.almacen.IntentarTomarBloqueoEscrituraYObtenerDatos(
                         DateTime.Now, (int)configuracion.TiempoEsperaPeticion.TotalSeconds);
-#endif
                     this.identificadorSesion = identificadorSesion;
                     this.identificadorBloqueoSesion = datosSesion.IdentificadorBloqueo;
                 }
                 else
                 {
-#if !NET461
-                    datosSesion = await this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatosAsync();
-#else
                     datosSesion = this.almacen.IntentarVerificarBloqueoEscrituraYObtenerDatos();
-#endif
                 }
 
-                if (!datosSesion.SeTomoBloqueo)
+                segundosEsperaSesion = datosSesion.SegundosEsperaSesion;
+                seTomoBloqueo = datosSesion.SeTomoBloqueo;
+                elementosEstadoSesion = datosSesion.ElementosEstadoSesion;
+                if (seTomoBloqueo)
+                {
+                    estaBloqueada = false;
+                }
+                else
                 {
                     this.identificadorSesion = null;
                     this.identificadorBloqueoSesion = null;
-#if !NET461
-                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo, tokenCancelacion);
-                    return new GetItemResult(
-                        new SessionStateStoreData(null, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion),
-                        true,
-                        this.almacen.ObtenerTiempoBloqueo(datosSesion.IdentificadorBloqueo),
-                        datosSesion.IdentificadorBloqueo,
-                        acciones);
-#else
-                    bloqueado = true;
-                    tiempoBloqueo = this.almacen.ObtenerTiempoBloqueo(identificadorBloqueo);
-                    this.ReleaseItemExclusive(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo);
-                    return null;
-#endif
+                    estaBloqueada = true;
                 }
 
-                if (datosSesion.ElementosEstadoSesion[VariableSesionAcciones] != null)
+                if (estaBloqueada)
                 {
-                    acciones = (SessionStateActions)datosSesion.ElementosEstadoSesion[VariableSesionAcciones];
+                    tiempoBloqueo = this.almacen.ObtenerTiempoBloqueo(datosSesion.IdentificadorBloqueo);
+                    return null;
                 }
 
-                datosSesion.ElementosEstadoSesion.Dirty = false;
-#if !NET461
-                SessionStateStoreData datosAlmacenEstadoSesion = new SessionStateStoreData(
-                    datosSesion.ElementosEstadoSesion, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion);
-                return new GetItemResult(datosAlmacenEstadoSesion, false, tiempoBloqueo, datosSesion.IdentificadorBloqueo, acciones);
-#else
-                return new SessionStateStoreData(
-                    datosSesion.ElementosEstadoSesion, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion);
-#endif
+                if (elementosEstadoSesion == null)
+                {
+                    this.ReleaseItemExclusive(contexto, identificadorSesion, identificadorBloqueo);
+                    return null;
+                }
+
+                if (elementosEstadoSesion[VariableSesionAcciones] != null)
+                {
+                    acciones = (SessionStateActions)elementosEstadoSesion[VariableSesionAcciones];
+                }
+
+                elementosEstadoSesion.Dirty = false;
+                return new SessionStateStoreData(elementosEstadoSesion, new HttpStaticObjectsCollection(), segundosEsperaSesion);
             }
             catch
             {
+                estaBloqueada = false;
+                identificadorBloqueo = null;
+                tiempoBloqueo = TimeSpan.Zero;
+                acciones = SessionStateActions.None;
+
                 if (configuracion.ArrojarConError)
                 {
                     throw;
                 }
 
-#if !NET461
-                return new GetItemResult(null, false, TimeSpan.Zero, null, SessionStateActions.None);
-#else
                 return null;
-#endif
             }
         }
+#endif
 
         /// <summary>
         /// Obtiene el almacén de datos de sesión en Redis para ejecutar las operaciones necesarias.
         /// </summary>
-        /// <param name="identificadorSesionNetFramework">El identificador de la sesión de .NET Framework.</param>
-        private void ObtenerAccesoAlmacen(string identificadorSesionNetFramework)
+        /// <param name="identificadorSesion">El identificador de la sesión de .NET Framework.</param>
+        private void ObtenerAccesoAlmacen(string identificadorSesion)
         {
             if (this.almacen == null)
             {
-                string identificadorSesionNet =
-                    HttpUtility.UrlDecode(HttpContext.Current.Request.Cookies[configuracion.NombreCookieSesionNet].Value);
-                this.almacen = new EnvoltorioConexionRedis(configuracion, identificadorSesionNet, identificadorSesionNetFramework);
+                this.almacen = new EnvoltorioConexionRedis(configuracion, identificadorSesion);
+            }
+            else
+            {
+                this.almacen.Llaves.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesion);
             }
         }
     }
