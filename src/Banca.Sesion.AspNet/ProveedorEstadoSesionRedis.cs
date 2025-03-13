@@ -17,11 +17,11 @@ namespace Banca.Sesion.AspNet
     using Microsoft.AspNet.SessionState;
 #endif
 
-/// <summary>
-/// Implementación de <see cref="SessionStateStoreProviderAsyncBase"/> que usa Redis como almacén de datos de estado de sesión y es
-/// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras
-/// aplicaciones web de .NET Framework y .NET.
-/// </summary>
+    /// <summary>
+    /// Implementación de <see cref="SessionStateStoreProviderAsyncBase"/> que usa Redis como almacén de datos de estado de sesión y es
+    /// compatible con la sesión de .NET. Esto significa que permite leer y escribir variables de sesión que se comparten con otras
+    /// aplicaciones web de .NET Framework y .NET.
+    /// </summary>
 #if !NET461
     public class ProveedorEstadoSesionRedis : SessionStateStoreProviderAsyncBase
 #else
@@ -239,8 +239,7 @@ namespace Banca.Sesion.AspNet
 #if !NET461
         /// <param name="cancellationToken">El token de cancelación para la tarea asíncrona.</param>
         /// <returns>Una tarea que recupera el elemento de sesión con bloqueo.</returns>
-        public override Task<GetItemResult> GetItemExclusiveAsync(
-            HttpContextBase context, string id, CancellationToken cancellationToken)
+        public override Task<GetItemResult> GetItemExclusiveAsync(HttpContextBase context, string id, CancellationToken cancellationToken)
 #else
         public override SessionStateStoreData GetItemExclusive(
             HttpContext context, string id, out bool locked, out TimeSpan lockAge, out object lockId, out SessionStateActions actions)
@@ -509,7 +508,7 @@ namespace Banca.Sesion.AspNet
             {
                 if (identificadorSesion == null)
                 {
-                    return null;
+                    return new GetItemResult(null, false, tiempoBloqueo, 0, acciones);
                 }
 
                 this.ObtenerAccesoAlmacen(identificadorSesion);
@@ -540,9 +539,8 @@ namespace Banca.Sesion.AspNet
                     this.identificadorSesion = null;
                     this.identificadorBloqueoSesion = null;
 #if !NET461
-                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo, tokenCancelacion);
                     return new GetItemResult(
-                        new SessionStateStoreData(null, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion),
+                        null,
                         true,
                         this.almacen.ObtenerTiempoBloqueo(datosSesion.IdentificadorBloqueo),
                         datosSesion.IdentificadorBloqueo,
@@ -553,6 +551,12 @@ namespace Banca.Sesion.AspNet
                     this.ReleaseItemExclusive(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo);
                     return null;
 #endif
+                }
+
+                if (datosSesion.ElementosEstadoSesion == null)
+                {
+                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo, tokenCancelacion);
+                    return new GetItemResult(null, false, tiempoBloqueo, datosSesion.IdentificadorBloqueo, acciones);
                 }
 
                 if (datosSesion.ElementosEstadoSesion[VariableSesionAcciones] != null)
@@ -578,7 +582,7 @@ namespace Banca.Sesion.AspNet
                 }
 
 #if !NET461
-                return new GetItemResult(null, false, TimeSpan.Zero, null, SessionStateActions.None);
+                return new GetItemResult(null, false, tiempoBloqueo, null, SessionStateActions.None);
 #else
                 return null;
 #endif
@@ -588,35 +592,15 @@ namespace Banca.Sesion.AspNet
         /// <summary>
         /// Obtiene el almacén de datos de sesión en Redis para ejecutar las operaciones necesarias.
         /// </summary>
-        /// <param name="identificadorSesionNetFramework">El identificador de la sesión de .NET Framework.</param>
-        private void ObtenerAccesoAlmacen(string identificadorSesionNetFramework)
+        private void ObtenerAccesoAlmacen(string identificadorSesion)
         {
-            HttpCookie cookieEnlace;
             if (this.almacen == null)
             {
-                string identificadorSesionNet =
-                    HttpUtility.UrlDecode(HttpContext.Current.Request.Cookies[configuracion.NombreCookieSesionNet].Value);
-                bool existeCokieEnlace = HttpContext.Current.Request.Cookies[EnlazadorSesion.NombreCookieEnlace] != null;
-                this.almacen = new EnvoltorioConexionRedis(
-                    configuracion,
-                    identificadorSesionNet,
-                    identificadorSesionNetFramework,
-                    existeCokieEnlace,
-                    out cookieEnlace);
+                this.almacen = new EnvoltorioConexionRedis(configuracion, identificadorSesion);
             }
             else
             {
-#if !NET461
-                cookieEnlace =
-                    Task.Run(() => this.almacen.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesionNetFramework)).Result;
-#else
-                cookieEnlace = this.almacen.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesionNetFramework);
-#endif
-            }
-
-            if (cookieEnlace != null)
-            {
-                HttpContext.Current.Response.Cookies.Add(cookieEnlace);
+                this.almacen.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
             }
         }
     }

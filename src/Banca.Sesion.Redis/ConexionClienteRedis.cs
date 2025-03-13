@@ -212,6 +212,11 @@ namespace Banca.Sesion.Redis
         private ISessionStateItemCollection DeserializarColeccionElementosEstadoSesion(
             RedisResult coleccionElementosEstadoSesionSerializada)
         {
+            if (coleccionElementosEstadoSesionSerializada.IsNull)
+            {
+                return null;
+            }
+
             try
             {
                 using (MemoryStream flujoMemoria = new MemoryStream((byte[])coleccionElementosEstadoSesionSerializada))

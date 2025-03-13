@@ -7,8 +7,8 @@ namespace Banca.Sesion.Redis
     using System;
 #if !NET461
     using System.Threading.Tasks;
-#endif
     using System.Web;
+#endif
     using System.Web.SessionState;
 
     /// <summary>
@@ -114,12 +114,6 @@ namespace Banca.Sesion.Redis
         /// obliga a enlazar la sesión de nuevo.
         /// </summary>
         /// <param name="identificadorSesion">El nuevo identificador de sesión.</param>
-#if !NET461
-        /// <returns>Una tarea cuyo resultado es la cookie bandera de enlace de sesión.</returns>
-        Task<HttpCookie> RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion);
-#else
-        /// <returns>Una tarea cuyo resultado es la cookie bandera de enlace de sesión.</returns>
-        HttpCookie RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion);
-#endif
+        void RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion);
     }
 }

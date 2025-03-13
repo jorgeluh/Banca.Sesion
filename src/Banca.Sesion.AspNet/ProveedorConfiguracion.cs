@@ -8,7 +8,6 @@ namespace Banca.Sesion.AspNet
     using System.Collections.Specialized;
     using System.Configuration;
     using System.Reflection;
-    using System.Web;
     using System.Web.Configuration;
     using Banca.Sesion.Redis;
 
@@ -41,10 +40,6 @@ namespace Banca.Sesion.AspNet
             this.ArrojarConError = ObtenerConfiguracionBool(configuraciones, "arrojarConError", true);
             SessionStateSection seccionEstadoSesion = (SessionStateSection)WebConfigurationManager.GetSection("system.web/sessionState");
             this.TiempoEsperaSesion = seccionEstadoSesion.Timeout;
-            this.CookieEnlaceSegura = ObtenerConfiguracionBool(configuraciones, "cookieEnlaceSegura", true);
-#if !NET461
-            this.CookieEnlaceMismoSitio = seccionEstadoSesion.CookieSameSite;
-#endif
         }
 
         /// <summary>
@@ -118,28 +113,6 @@ namespace Banca.Sesion.AspNet
         /// Obtiene el tiempo de espera máximo que se permite ejecutar esta petición.
         /// </summary>
         public TimeSpan TiempoEsperaPeticion { get; private set; }
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>httponly</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        public bool CookieEnlaceSoloHttp => true;
-
-        /// <summary>
-        /// Obtiene el valor para la propiedad <c>path</c> de la cookie de enlace.
-        /// </summary>
-        public string CookieEnlaceRuta => "/";
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>secure</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        public bool CookieEnlaceSegura { get; }
-
-#if !NET461
-        /// <summary>
-        /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
-        /// </summary>
-        public SameSiteMode CookieEnlaceMismoSitio { get; }
-#endif
 
         /// <summary>
         /// Crea una nueva instancia de la clase <see cref="ProveedorConfiguracion"/>.

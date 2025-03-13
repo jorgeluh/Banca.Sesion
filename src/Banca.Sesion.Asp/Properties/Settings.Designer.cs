@@ -12,7 +12,7 @@ namespace Banca.Sesion.Asp.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.11.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.13.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -34,10 +34,10 @@ namespace Banca.Sesion.Asp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("PruebaNetCore")]
-        public string NombreCookieSesionNet {
+        [global::System.Configuration.DefaultSettingValueAttribute("PruebaNetFramework")]
+        public string NombreCookieSesion {
             get {
-                return ((string)(this["NombreCookieSesionNet"]));
+                return ((string)(this["NombreCookieSesion"]));
             }
         }
         
@@ -65,24 +65,6 @@ namespace Banca.Sesion.Asp.Properties {
         public global::System.TimeSpan TiempoEsperaPeticion {
             get {
                 return ((global::System.TimeSpan)(this["TiempoEsperaPeticion"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool CookieEnlaceSegura {
-            get {
-                return ((bool)(this["CookieEnlaceSegura"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("None")]
-        public string CookieEnlaceMismoSitio {
-            get {
-                return ((string)(this["CookieEnlaceMismoSitio"]));
             }
         }
     }

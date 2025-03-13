@@ -5,9 +5,6 @@
 namespace Banca.Sesion.Redis
 {
     using System;
-#if !NET461
-    using System.Web;
-#endif
 
     /// <summary>
     /// Define los valores de configuración necesarios para almacenar el estado de sesión en Redis.
@@ -74,27 +71,5 @@ namespace Banca.Sesion.Redis
         /// Obtiene el tiempo que la sesión puede transcurrir sin ser accedida antes que sea descartada.
         /// </summary>
         TimeSpan TiempoEsperaSesion { get; }
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>httponly</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        bool CookieEnlaceSoloHttp { get; }
-
-        /// <summary>
-        /// Obtiene el valor para la propiedad <c>path</c> de la cookie de enlace.
-        /// </summary>
-        string CookieEnlaceRuta { get; }
-
-        /// <summary>
-        /// Obtiene un valor que indica si se debe agregar la propiedad <c>secure</c> a la cookie de enlace (<c>true</c>) o no.
-        /// </summary>
-        bool CookieEnlaceSegura { get; }
-
-#if !NET461
-        /// <summary>
-        /// Obtiene el modo para la propiedad <c>samesite</c> de la cookie de enlace.
-        /// </summary>
-        SameSiteMode CookieEnlaceMismoSitio { get; }
-#endif
     }
 }

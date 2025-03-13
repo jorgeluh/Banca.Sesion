@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Banca.Sesion.Redis</RootNamespace>
     <AssemblyName>Banca.Sesion.Redis</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
@@ -21,7 +21,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET461</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET48</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\Banca.Sesion.Redis.xml</DocumentationFile>
@@ -99,15 +99,11 @@
     <Reference Include="System.Web" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ApiEnlace\ClienteApi.cs" />
-    <Compile Include="ApiEnlace\ClienteHttp.cs" />
-    <Compile Include="ApiEnlace\FabricaPeticiones.cs" />
     <Compile Include="ColeccionElementosEstadoSesion.cs" />
     <Compile Include="ConexionClienteRedis.cs" />
     <Compile Include="ConexionCompartidaRedis.cs" />
     <Compile Include="DatosSesion.cs" />
     <Compile Include="ElementoEstadoSesion.cs" />
-    <Compile Include="EnlazadorSesion.cs" />
     <Compile Include="EnvoltorioConexionRedis.cs" />
     <Compile Include="ExtensionesBinaryReader.cs" />
     <Compile Include="ExtensionesBinaryWriter.cs" />

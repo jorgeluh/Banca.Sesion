@@ -10,7 +10,6 @@ namespace Banca.Sesion.Redis
 #if !NET461
     using System.Threading.Tasks;
 #endif
-    using System.Web;
     using System.Web.SessionState;
     using StackExchange.Redis;
 
@@ -31,7 +30,7 @@ namespace Banca.Sesion.Redis
         /// </remarks>
         private const string ComandoEscribirBloqueoObtenerDatos = @"
             local retArray = {}
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             local datosSesion = redis.call('HMGET', llaveNet, ARGV[1], ARGV[2])
             local lockValue = ARGV[3]
             local locked = redis.call('SETNX', KEYS[2], ARGV[3])
@@ -66,7 +65,7 @@ namespace Banca.Sesion.Redis
         /// existentes.
         /// </summary>
         private const string ComandoLeerBloqueoYObtenerDatos = @"
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             local datosSesion = redis.call('HMGET', llaveNet, ARGV[1], ARGV[2])
             local retArray = {}
             local lockValue = ''
@@ -95,7 +94,7 @@ namespace Banca.Sesion.Redis
         /// existentes.
         /// </summary>
         private const string ComandoLiberarBloqueoEscrituraSiIdentificadorBloqueoCoincide = @"
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             local writeLockValueFromCache = redis.call('GET', KEYS[2])
             if writeLockValueFromCache == ARGV[2] then
                 redis.call('DEL', KEYS[2])
@@ -116,7 +115,7 @@ namespace Banca.Sesion.Redis
         /// Comando que extiende la expiración de las llaves existentes.
         /// </summary>
         private const string ComandoActualizarTiempoParaExpirar = @"
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             local dataExists = redis.call('EXISTS', llaveNet)
             if dataExists == 0 then
                 return 1
@@ -138,7 +137,7 @@ namespace Banca.Sesion.Redis
         /// Comando que actualiza los valores de los elementos de estado de sesión y extiende la expiración de las llaves existentes.
         /// </summary>
         private const string ComandoFijar = @"
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             local SessionTimeout = ARGV[4] * 10000000
             redis.call('HSET', llaveNet, ARGV[1], ARGV[2], ARGV[3], SessionTimeout)
             redis.call('EXPIRE', llaveNet, ARGV[4])
@@ -157,7 +156,7 @@ namespace Banca.Sesion.Redis
                 end
             end
 
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             if tonumber(ARGV[8]) ~= 0 then redis.call('HSET', llaveNet, ARGV[2], ARGV[12]) end
             redis.call('HSET', llaveNet, ARGV[1], ARGV[4] * 10000000)
             redis.call('EXPIRE', KEYS[1], ARGV[4])
@@ -175,7 +174,7 @@ namespace Banca.Sesion.Redis
                 end
             end
 
-            local llaveNet = redis.call('GET', KEYS[1])
+            local llaveNet = KEYS[1]
             redis.call('DEL', KEYS[1])
             redis.call('DEL', llaveNet)
             redis.call('DEL', KEYS[2])";
@@ -204,22 +203,10 @@ namespace Banca.Sesion.Redis
         /// Inicializa una nueva instancia de la clase <see cref="EnvoltorioConexionRedis"/>.
         /// </summary>
         /// <param name="configuracion">La configuración con los parámetros necesarios para establecer la conexión con Redis.</param>
-        /// <param name="identificadorSesionNet">El identificador de sesión obtenido de la cookie de sesión de .NET. Este no debe tener
-        /// ninguna codificación para evitar problemas al enviarlo a la API de enlace de sesión.</param>
-        /// <param name="identificadorSesionNetFramework">El identificador de la sesión de .NET Framework.</param>
-        /// <param name="existeCookieEnlace">Indica si ya existe la cookie de enlace en la petición que se recibió (<c>true</c>) o no.
-        /// </param>
-        /// <param name="cookieEnlace">La cookie bandera de enlace de sesión. Es <c>null</c> si no es necesario agregarla a la
-        /// respuesta.</param>
-        public EnvoltorioConexionRedis(
-            IProveedorConfiguracion configuracion,
-            string identificadorSesionNet,
-            string identificadorSesionNetFramework,
-            bool existeCookieEnlace,
-            out HttpCookie cookieEnlace)
+        /// <param name="identificadorSesion">El identificador de la sesión de .NET Framework.</param>
+        public EnvoltorioConexionRedis(IProveedorConfiguracion configuracion, string identificadorSesion)
         {
-            EnlazadorSesion enlazadorSesion = new EnlazadorSesion(identificadorSesionNet, configuracion, existeCookieEnlace);
-            this.generadorLlaves = new GeneradorLlaves(identificadorSesionNetFramework, enlazadorSesion, out cookieEnlace);
+            this.generadorLlaves = new GeneradorLlaves(identificadorSesion);
 
             if (conexionCompartida == null)
             {
@@ -445,19 +432,9 @@ namespace Banca.Sesion.Redis
         /// obliga a enlazar la sesión de nuevo.
         /// </summary>
         /// <param name="identificadorSesion">El nuevo identificador de sesión.</param>
-#if !NET461
-        /// <returns>Una tarea cuyo resultado es la cookie bandera de enlace de sesión.</returns>
-        public async Task<HttpCookie> RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
-#else
-        /// <returns>La cookie bandera de enlace de sesión.</returns>
-        public HttpCookie RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion)
-#endif
+        public void RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
         {
-#if !NET461
-            return await this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
-#else
-            return this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesion);
-#endif
+            this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
         }
 
         /// <summary>

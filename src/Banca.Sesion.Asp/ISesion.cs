@@ -15,11 +15,6 @@ namespace Banca.Sesion.Asp
     public interface ISesion
     {
         /// <summary>
-        /// Obtiene el nombre de la cookie de enlace de sesión para poder comprobar si existe en la petición desde ASP.
-        /// </summary>
-        string NombreCookieEnlace { get; }
-
-        /// <summary>
         /// Obtiene el identificador de sesión de ASP. Este es un número entero. Se representa como <see cref="string"/> si se elimina la
         /// dependencia de ASP y se puede usar un identificador distinto.
         /// </summary>
@@ -54,12 +49,8 @@ namespace Banca.Sesion.Asp
         /// Inicializa el objeto para poder obtener el identificador de sesión de .NET Framework y enlazarlo con el identificador de sesión
         /// de .NET si aún no se ha hecho desde una aplicación de ASP.NET Framework.
         /// </summary>
-        /// <param name="identificadorSesionNetFramework">El identificador de sesión de .NET Framework.</param>
-        /// <param name="identificadorSesionNet">El identificador de sesión de .NET.</param>
-        /// <param name="existeCookieEnlace">Un valor que indica si se encontró la cookie de enlace (cuyo nombre lo da la propiedad
-        /// <see cref="NombreCookieEnlace"/>) en la petición o no.</param>
-        /// <returns>El valor para el encabezado <c>Set-Cookie</c> si se debe crear la cookie de enlace.</returns>
-        string Inicializar(string identificadorSesionNetFramework, string identificadorSesionNet, bool existeCookieEnlace);
+        /// <param name="identificadorSesion">El identificador de sesión de .NET Framework.</param>
+        void Inicializar(string identificadorSesion);
 
         /// <summary>
         /// Abandona la sesión actual. Su único efecto es eliminar todas las variables de sesión pues no existe una funcionalidad
