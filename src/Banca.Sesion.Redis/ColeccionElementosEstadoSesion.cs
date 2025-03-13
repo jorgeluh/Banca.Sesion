@@ -27,16 +27,6 @@ namespace Banca.Sesion.Redis
         private const byte RevisionSerializacion = 2;
 
         /// <summary>
-        /// Longitud de un vector de llaves que .NET emplea en la serialización de los elementos de estado de sesión.
-        /// </summary>
-        private const int CantidadBytesIdentificadorSesion = 16;
-
-        /// <summary>
-        /// Mantiene los bytes de identificador de sesión que .NET incluye en los datos serializados de los elementos de estado de sesión.
-        /// </summary>
-        private byte[] bytesIdentificadorSesion;
-
-        /// <summary>
         /// Inicializa una nueva instancia de la clase <see cref="ColeccionElementosEstadoSesion"/>. La colección no contiene elementos de
         /// estado de sesión preexistentes.
         /// </summary>
@@ -163,7 +153,6 @@ namespace Banca.Sesion.Redis
         {
             escritor.Write(RevisionSerializacion);
             escritor.SerializarA3Bytes(this.Count);
-            escritor.Write(this.bytesIdentificadorSesion, 0, CantidadBytesIdentificadorSesion);
 
             foreach (ElementoEstadoSesion elemento in this.BaseGetAllValues().Cast<ElementoEstadoSesion>())
             {
@@ -187,7 +176,6 @@ namespace Banca.Sesion.Redis
             }
 
             int cantidadElementos = lector.DeserializarDesde3Bytes();
-            this.bytesIdentificadorSesion = lector.LeerBytes(CantidadBytesIdentificadorSesion);
             int longitudLlave;
             byte[] bytesLlave;
             int longitudDatos;
