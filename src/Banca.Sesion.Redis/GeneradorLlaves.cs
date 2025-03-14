@@ -57,7 +57,7 @@ namespace Banca.Sesion.Redis
         /// Esto ejecuta también un nuevo enlace con la llave de Redis de .NET para el nuevo identificador de sesión.
         /// </remarks>
         /// <param name="identificadorSesion">El nuevo identificador de sesión de .NET Framework.</param>
-        public void RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
+        public void RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion)
         {
             if (!identificadorSesion.Equals(this.identificadorSesion))
             {

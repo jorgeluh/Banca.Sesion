@@ -432,9 +432,9 @@ namespace Banca.Sesion.Redis
         /// obliga a enlazar la sesión de nuevo.
         /// </summary>
         /// <param name="identificadorSesion">El nuevo identificador de sesión.</param>
-        public void RegenerarCadenaLlaveSiIdentificadorModificadoAsync(string identificadorSesion)
+        public void RegenerarCadenaLlaveSiIdentificadorModificado(string identificadorSesion)
         {
-            this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificadoAsync(identificadorSesion);
+            this.generadorLlaves.RegenerarCadenaLlaveSiIdentificadorModificado(identificadorSesion);
         }
 
         /// <summary>
