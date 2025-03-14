@@ -20,7 +20,7 @@
     <Setting Name="CookieEnlaceSegura" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="CookieEnlaceMismoSitio" Type="System.String" Scope="Application">
+    <Setting Name="CookieEnlaceMismoSitio" Type="System.Web.SameSiteMode" Scope="Application">
       <Value Profile="(Default)">None</Value>
     </Setting>
   </Settings>
