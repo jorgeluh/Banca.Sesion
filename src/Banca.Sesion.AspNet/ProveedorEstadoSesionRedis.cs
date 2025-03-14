@@ -509,7 +509,11 @@ namespace Banca.Sesion.AspNet
             {
                 if (identificadorSesion == null)
                 {
+#if !NET461
+                    return new GetItemResult(null, false, tiempoBloqueo, 0, acciones);
+#else
                     return null;
+#endif
                 }
 
                 this.ObtenerAccesoAlmacen(identificadorSesion);
@@ -540,9 +544,8 @@ namespace Banca.Sesion.AspNet
                     this.identificadorSesion = null;
                     this.identificadorBloqueoSesion = null;
 #if !NET461
-                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo, tokenCancelacion);
                     return new GetItemResult(
-                        new SessionStateStoreData(null, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion),
+                        null,
                         true,
                         this.almacen.ObtenerTiempoBloqueo(datosSesion.IdentificadorBloqueo),
                         datosSesion.IdentificadorBloqueo,
@@ -550,6 +553,17 @@ namespace Banca.Sesion.AspNet
 #else
                     bloqueado = true;
                     tiempoBloqueo = this.almacen.ObtenerTiempoBloqueo(identificadorBloqueo);
+                    identificadorBloqueo = datosSesion.IdentificadorBloqueo;
+                    return null;
+#endif
+                }
+
+                if (datosSesion.ElementosEstadoSesion == null)
+                {
+#if !NET461
+                    await this.ReleaseItemExclusiveAsync(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo, tokenCancelacion);
+                    return new GetItemResult(null, false, tiempoBloqueo, datosSesion.IdentificadorBloqueo, acciones);
+#else
                     this.ReleaseItemExclusive(contexto, identificadorSesion, datosSesion.IdentificadorBloqueo);
                     return null;
 #endif
@@ -561,13 +575,13 @@ namespace Banca.Sesion.AspNet
                 }
 
                 datosSesion.ElementosEstadoSesion.Dirty = false;
-#if !NET461
                 SessionStateStoreData datosAlmacenEstadoSesion = new SessionStateStoreData(
                     datosSesion.ElementosEstadoSesion, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion);
+#if !NET461
                 return new GetItemResult(datosAlmacenEstadoSesion, false, tiempoBloqueo, datosSesion.IdentificadorBloqueo, acciones);
 #else
-                return new SessionStateStoreData(
-                    datosSesion.ElementosEstadoSesion, new HttpStaticObjectsCollection(), datosSesion.SegundosEsperaSesion);
+                identificadorBloqueo = datosSesion.IdentificadorBloqueo;
+                return datosAlmacenEstadoSesion;
 #endif
             }
             catch
@@ -578,8 +592,12 @@ namespace Banca.Sesion.AspNet
                 }
 
 #if !NET461
-                return new GetItemResult(null, false, TimeSpan.Zero, null, SessionStateActions.None);
+                return new GetItemResult(null, false, tiempoBloqueo, null, SessionStateActions.None);
 #else
+                bloqueado = false;
+                identificadorBloqueo = null;
+                tiempoBloqueo = TimeSpan.Zero;
+                acciones = SessionStateActions.None;
                 return null;
 #endif
             }
